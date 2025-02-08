@@ -1,0 +1,9 @@
+{
+    "00000000": "reserved",
+    "00000001": "create_account",
+    "00000002": "delete_account",
+    "00000003": "login_account",
+    "00000004": "logout_account",
+    "00000005": "send_text_message",
+    "00000006": "fetch_text_messages"
+}
