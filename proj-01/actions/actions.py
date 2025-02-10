@@ -1,4 +1,5 @@
 import json
+from utils import message as MSG
 
 class BaseActionHandler:
     """Base class for client and server action implementations."""
@@ -79,26 +80,42 @@ class ClientActionHandler(BaseActionHandler):
 
     def create_account(self, username: str, hashed_password: str) -> bool:
         print(f"[Client] Creating account for {username}...")
+        msg_content = MSG.MessageArgs(username, hashed_password)
+        msg = MSG.Message(message_args=msg_content, message_type="create_account", endpoint=self.client)
+        self.client.send_server_message(msg)
         return True
 
     def delete_account(self, username: str) -> bool:
         print(f"[Client] Deleting account for {username}...")
+        msg_content = MSG.MessageArgs(username)
+        msg = MSG.Message(message_args=msg_content, message_type="delete_account", endpoint=self.client)
+        self.client.send_server_message(msg)
         return True
 
     def login_account(self, username: str, hashed_password: str) -> bool:
         print(f"[Client] Logging in {username}...")
+        msg_content = MSG.MessageArgs(username, hashed_password)
+        msg = MSG.Message(message_args=msg_content, message_type="login_account", endpoint=self.client)
+        self.client.send_server_message(msg)
         return True
 
     def logout_account(self) -> bool:
+        # TODO: Maybe the logout functionality should strictly be on the client side
         print("[Client] Logging out...")
         return True
 
-    def send_text_message(self, username1: str, username2: str) -> bool:
+    def send_text_message(self, username1: str, username2: str, message_text: str) -> bool:
         print(f"[Client] Sending text message from {username1} to {username2}...")
+        msg_content = MSG.MessageArgs(username1, username2, message_text)
+        msg = MSG.Message(message_args=msg_content, message_type="send_text_message", endpoint=self.client)
+        self.client.send_server_message(msg)
         return True
-
-    def fetch_text_messages(self) -> bool:
+    
+    def fetch_text_messages(self, username1: str, username2: str, k: int) -> bool:
         print("[Client] Retrieving recent text messages...")
+        msg_content = MSG.MessageArgs(username1, username2, str(k))
+        msg = MSG.Message(message_args=msg_content, message_type="fetch_text_messages", endpoint=self.client)
+        self.client.send_server_message(msg)
         return True
 
 class ServerActionHandler(BaseActionHandler):
