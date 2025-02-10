@@ -31,8 +31,7 @@ class BaseActionHandler:
             print(f"[Base] Function {action_name} not found in {self.__class__.__name__}")
             return False
 
-        return action_function(*args)  # Actually execute function
-
+        return action_function(*args)  # Execute function
 
 class ClientActionHandler(BaseActionHandler):
     """Handles client-specific actions."""
@@ -40,10 +39,8 @@ class ClientActionHandler(BaseActionHandler):
         super().__init__(file_path)
         self.client = client
 
-    def reserved(self, display_str: str, iterations: str) -> bool:
-        iterations = int(iterations)
-        for _ in range(iterations):
-            print(f"[Client] {display_str}")
+    def status(self, contents: str) -> bool:
+        print(contents)
         return True
 
     def create_account(self, username: str, hashed_password: str) -> bool:
@@ -70,17 +67,14 @@ class ClientActionHandler(BaseActionHandler):
         print("[Client] Retrieving recent text messages...")
         return True
 
-
 class ServerActionHandler(BaseActionHandler):
     """Handles server-specific actions."""
     def __init__(self, server, file_path: str):
         super().__init__(file_path)
         self.server = server
 
-    def reserved(self, display_str: str, iterations: str) -> bool:
-        iterations = int(iterations)
-        for _ in range(iterations):
-            print(f"[Server] {display_str}")
+    def status(self, contents: str) -> bool:
+        print(f"Server echo: {contents}")
         return True
 
     def create_account(self, username: str, hashed_password: str) -> bool:

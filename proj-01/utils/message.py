@@ -31,7 +31,6 @@ class Message:
         """
         self.endpoint = endpoint
         self.message_type = ""
-        self.message_valid = False
         self.message_content = ""
         self.message = ""
         self.message_valid = False
@@ -69,18 +68,21 @@ class Message:
 
         if not (instance.endpoint.msg_min_size <= len(message_bytes) <= instance.endpoint.msg_max_size):
             instance.message_valid = False
+            print("[Message] Invalid size.")
             return instance
         
         message_header = message_bytes[:endpoint.msg_magic_size]
         message_footer = message_bytes[-endpoint.msg_magic_size:]
         if message_header != endpoint.msg_magic or message_footer != endpoint.msg_magic:
             instance.message_valid = False
+            print("[Message] Invalid magic values.")
             return instance
 
         message_type = message_bytes[endpoint.msg_magic_size:endpoint.msg_magic_size + endpoint.msg_type_size]
         # TODO: Check message type
         if message_type not in instance.endpoint.action_handler.action_map:
             instance.message_valid = False
+            print("[Message] Invalid type.")
             return instance
         
         message_content = message_bytes[endpoint.msg_magic_size + endpoint.msg_type_size:-endpoint.msg_magic_size]
@@ -89,6 +91,9 @@ class Message:
         instance.message_content = message_content
         instance.message = message_bytes
         instance.message_valid = True
+
+        # print("[Message] Content:", instance.message_content)
+
         return instance
 
     def encode(self) -> bytes:
