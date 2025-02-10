@@ -18,7 +18,7 @@ class BaseActionHandler:
             print(f"[Base] Error loading action map: {e}")
             return {}
     
-    def execute_action(self, action_code: str, args: list[str]) -> bool:
+    def execute_action(self, action_code: str, args: list[str]):
         """Dynamically execute an action on `this` handler."""
         # print("[Base] Action map loaded:", self.action_map)
         action_name = self.action_map.get(action_code)
@@ -33,6 +33,40 @@ class BaseActionHandler:
 
         return action_function(*args)  # Execute function
 
+class ClientCallbackHandler(BaseActionHandler):
+    """Handles client-specific action callbacks once a server response is received."""
+    def __init__(self, client, file_path: str):
+        super().__init__(file_path)
+        self.client = client
+
+    def status(self, contents: str):
+        print(f"[Client Callback] Status: {contents}")
+        return True
+
+    def create_account(self, contents: str):
+        print(f"[Client Callback] Created account: {contents}")
+        return True
+
+    def delete_account(self, contents: str):
+        print(f"[Client Callback] Deleted account: {contents}")
+        return True
+
+    def login_account(self, contents: str):
+        print(f"[Client Callback] Logged in: {contents}")
+        return True
+
+    def logout_account(self, contents: str):
+        print(f"[Client Callback] Logged out: {contents}")
+        return True
+
+    def send_text_message(self, contents: str):
+        print(f"[Client Callback] Sent text message: {contents}")
+        return True
+
+    def fetch_text_messages(self, contents: str):
+        print(f"[Client Callback] Retrieved recent text messages: {contents}")
+        return True
+
 class ClientActionHandler(BaseActionHandler):
     """Handles client-specific actions."""
     def __init__(self, client, file_path: str):
@@ -40,7 +74,7 @@ class ClientActionHandler(BaseActionHandler):
         self.client = client
 
     def status(self, contents: str) -> bool:
-        print(contents)
+        print(f"[Client] Status: {contents}")
         return True
 
     def create_account(self, username: str, hashed_password: str) -> bool:
@@ -74,7 +108,7 @@ class ServerActionHandler(BaseActionHandler):
         self.server = server
 
     def status(self, contents: str) -> bool:
-        print(f"Server echo: {contents}")
+        print(f"[Server] Status: {contents}")
         return True
 
     def create_account(self, username: str, hashed_password: str) -> bool:
@@ -97,7 +131,7 @@ class ServerActionHandler(BaseActionHandler):
         print(f"[Server] Processing text message from {username1} to {username2}...")
         return self.server.account_db.send_text_message(username1, username2, message_text)
 
-    def fetch_text_messages(self, username1: str, username2: str, k: str) -> bool:
+    def fetch_text_messages(self, username1: str, username2: str, k: str) -> list[str]:
         print("[Server] Fetching recent text messages...")
         k = int(k)
         return self.server.account_db.fetch_text_messages(username1, username2, k)

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from utils import message as MSG
 from utils import config
+from utils import utils
 from actions import actions
 
 class Client:
@@ -25,6 +26,7 @@ class Client:
         self.connected = False
 
         self.action_handler = actions.ClientActionHandler(self, self.action_dict_name)
+        self.callback_handler = actions.ClientCallbackHandler(self, self.action_dict_name)
         self.server_message_queue = queue.Queue()
         self.executor = ThreadPoolExecutor(max_workers=1)
 
@@ -55,17 +57,18 @@ class Client:
         try:
             while self.connected:
                 # First read the message length (4 bytes)
-                length_bytes = self.client_socket.recv(4)
-                if len(length_bytes) < 4:
+
+                length_bytes = utils.recv_all(self.client_socket, 4)
+                if length_bytes is None:
                     break
                 message_length = int.from_bytes(length_bytes, 'big')
 
                 # Now read the actual message
-                message_bytes = self.client_socket.recv(message_length).decode("utf-8")
-                if not message_bytes:
+                message_bytes = utils.recv_all(self.client_socket, message_length)
+                if message_bytes is None:
                     break
                 
-                message = MSG.Message.from_bytes(message_bytes, self)
+                message = MSG.Message.from_bytes(message_bytes.decode("utf-8"), self)
                 if message.valid():
                     message_type, message_content = message.unpack()
                     message_args = MSG.MessageArgs.to_arglist(message_content)
@@ -109,17 +112,18 @@ class Client:
         while True:
             try:
                 message_type, message_args = self.server_message_queue.get()
-                future = self.executor.submit(self.perform_action, message_type, message_args)
+                future = self.executor.submit(self.perform_callback, message_type, message_args)
                 future.result()
             except queue.Empty:
                 pass
             except Exception as e:
                 print("[Client] Message process error due to:", e)
 
-    def perform_action(self, message_type: str, message_args: list[str]):
-        action_status = self.action_handler.execute_action(message_type, message_args)
+    def perform_callback(self, message_type: str, message_args: list[str]):
+        action_status = self.callback_handler.execute_action(message_type, message_args)
         if action_status:
-            print("[Client] Action OK.")
+            # print("[Client] Action OK.")
+            pass
         else:
             print(f"[Client] Action {message_type} Unsuccessful.")
 

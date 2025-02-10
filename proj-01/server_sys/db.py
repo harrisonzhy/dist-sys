@@ -140,7 +140,7 @@ class AccountDatabase:
         print(f"[Server] Message '{message_text}' added to conversation between '{username_1}' and '{username_2}'.")
         return True
 
-    def fetch_text_messages(self, username_1: str, username_2: str, k: int) -> bool:
+    def fetch_text_messages(self, username_1: str, username_2: str, k: int) -> list[str]:
         """Retrieve the k most recent messages between two users."""
         conn = self.get_conn()
         cursor = conn.cursor()
@@ -157,15 +157,15 @@ class AccountDatabase:
             LIMIT ?
         """, (username_1, username_2, username_2, username_1, k))
 
-        messages = cursor.fetchall()
+        fetched_messages = cursor.fetchall()
+        messages = [message[0] for message in fetched_messages]
         if messages:
             print(f"[Server] The k={k} most recent messages between '{username_1}' and '{username_2}':")
             for message in messages:
-                print(f"{message[1]} - {message[0]}")
-            return True
+                print("[+]", message)
         else:
             print(f"[Server] No messages found between '{username_1}' and '{username_2}'.")
-            return False
+        return messages
 
     def close(self):
         """Close the connection for the current thread."""

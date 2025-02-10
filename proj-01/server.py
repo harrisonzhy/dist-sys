@@ -1,12 +1,14 @@
 import socket
 import threading
 import queue
+from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Iterable as iterable
 
 from server_sys import db
 from utils import message as MSG
 from utils import config
+from utils import utils
 from actions import actions
-from concurrent.futures import ThreadPoolExecutor
 
 class Server:
     def __init__(self):
@@ -70,19 +72,20 @@ class Server:
         try:
             while True:
                 # First read the message length (4 bytes)
-                length_bytes = client_socket.recv(4)
-                if len(length_bytes) < 4:
+                length_bytes = utils.recv_all(client_socket, 4)
+                if length_bytes is None:
                     print(f"[Server] Client {addr} disconnected.")
                     break
                 message_length = int.from_bytes(length_bytes, 'big')
 
                 # Now read the actual message
-                message_bytes = client_socket.recv(message_length).decode("utf-8")
-                if not message_bytes:
+                message_bytes = utils.recv_all(client_socket, message_length)
+                if message_bytes is None:
                     print(f"[Server] Client {addr} disconnected.")
                     break
-                
-                message = MSG.Message.from_bytes(message_bytes, self)
+
+                # And process it
+                message = MSG.Message.from_bytes(message_bytes.decode("utf-8"), self)
                 if message.valid():
                     message_type, message_content = message.unpack()
                     # print(f"Received message type {message_type} from {addr}: {message_content}")
@@ -115,15 +118,18 @@ class Server:
                 break  # Client was disconnected
 
     def perform_action(self, message_type: str, message_args: list[str], client_socket):
-        action_status = self.action_handler.execute_action(message_type, message_args)
-        if action_status:
-            print("[Server] Action OK.")
-        else:
-            print(f"[Server] Action {message_type} unsuccessful.")
+        """Executes an action and sends back the response as a list of messages."""
+        ret_val = self.action_handler.execute_action(message_type, message_args)
+        if not isinstance(ret_val, iterable):
+            ret_val = [ret_val]
         
-        msg_content = MSG.MessageArgs("OK")
-        msg = MSG.Message(message_args=msg_content, message_type="status", endpoint=self)
-        self.send_client_message(client_socket, msg)
+        ret_val = [str(item) for item in ret_val]
+
+        for item in ret_val:
+            msg_content = MSG.MessageArgs(item)
+            msg = MSG.Message(message_args=msg_content, message_type=message_type, endpoint=self)
+            self.send_client_message(client_socket, msg)
+
         print("[Server] Sent action status update to client.")
 
 if __name__ == "__main__":

@@ -37,9 +37,13 @@ class Message:
 
         message_content = message_args.to_string()
 
-        if self.endpoint.msg_min_size + len(message_content) <= self.endpoint.msg_max_size \
-            and message_type in self.endpoint.action_handler.inverse_action_map:
-            self.message_type = self.endpoint.action_handler.inverse_action_map[message_type]
+        if self.endpoint.msg_min_size + len(message_content) <= self.endpoint.msg_max_size and \
+            (message_type in self.endpoint.action_handler.action_map or \
+             message_type in self.endpoint.action_handler.inverse_action_map):
+            if message_type in self.endpoint.action_handler.action_map:
+                self.message_type = message_type
+            else:
+                self.message_type = self.endpoint.action_handler.inverse_action_map[message_type]
             self.message_content = message_content
             self.message = (
                 self.endpoint.msg_magic +
