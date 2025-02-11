@@ -1,19 +1,33 @@
 import streamlit as st
+from client import Client
+import hashlib as hasher
+
+def update_ui_state(key, value):
+    if key == 'fetched_messages':
+        m_id, sender, text = value.split('|')
+        if st.session_state['texts'][sender]:
+            st.session_state['texts'][sender].append({'id': m_id, 'text': text})
+        else:
+            st.session_state['texts'][sender] = [{'id': m_id, 'text': text}]
+    else:
+        st.session_state[key] = value
+    st.rerun()
+
+if "client" not in st.session_state:
+    st.session_state["client"] = Client(update_ui_state)
 
 # Initialize session state for user authentication
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
     st.session_state["username"] = None
 
-# Simulated message store {recipient: [texts]}
 if "texts" not in st.session_state:
-    st.session_state["texts"] = {"Harrison": ["1", "2", "3", "4", "5", "6"], "Andrew": ["Bye"]}
+    st.session_state["texts"] = {}
 
-# User settings
 if "max_texts" not in st.session_state:
     st.session_state["max_texts"] = 5  # Default max number of texts per sender
 
-### **🔹 Settings Page**
+### **Settings Page**
 def show_settings_ui():
     st.title("⚙️ Settings")
     st.subheader("Configure Maximum Texts Shown Per Sender")
@@ -42,18 +56,16 @@ def show_auth_ui():
 
     with col1:
         if st.button("Create Account", use_container_width=True):
-            if username and password:
-                if username in st.session_state["texts"]:
-                    st.error("Username already exists!")
-                else:
-                    st.session_state["texts"][username] = []
-                    st.session_state["max_texts"] = 5  # Default value on account creation
-                    st.success(f"Account created for {username}")
+            if username and password and ('|' not in username):
+                st.session_state["username"] = username
+                st.session_state["client"].ClientActionHandler.create_account(username, hasher.sha256(password.encode()).hexdigest())
             else:
-                st.error("Enter a valid username and password")
+                st.error("Enter a valid username and password. Cannot include '|' in username.")
 
     with col2:
         if st.button("Log In", use_container_width=True):
+            st.session_state["username"] = username 
+            st.session_state["client"].ClientActionHandler.login_account(username, hasher.sha256(password.encode()).hexdigest())
             if username in st.session_state["texts"]:
                 st.session_state["logged_in"] = True
                 st.session_state["username"] = username
@@ -61,6 +73,21 @@ def show_auth_ui():
                 st.rerun()
             else:
                 st.error("Invalid credentials")
+
+    if "account_status" in st.session_state:
+        if st.session_state["account_status"] == 'False':
+            st.error(st.session_state["❌ Account Creation Failed. Username already exists."])
+        else:
+            st.success("✅ Account Created.")
+        del st.session_state['account_status']
+
+    if "auth_status" in st.session_state:
+        if st.session_state["auth_status"] == 'False':
+            st.error(st.session_state["❌ Incorrect credentials."])
+        else:
+            st.success("✅ Login successful.")
+        del st.session_state['login_status']
+        st.session_state["logged_in"] = True
 
 ### **🔹 Main Page (Messaging UI)**
 def show_main_ui():
@@ -80,9 +107,9 @@ def show_main_ui():
 
     with col2:
         if st.button("Delete Account", key="delete_account", use_container_width=True):
-            del st.session_state["texts"][st.session_state["username"]]
             st.session_state["logged_in"] = False
             st.session_state["username"] = None
+            st.session_state["client"].ClientActionHandler.delete_account(username)
             st.success("Account deleted")
             st.rerun()
 
@@ -93,13 +120,14 @@ def show_main_ui():
         text = st.text_area("Text", placeholder="Type your text here...")
 
         if st.button("Send", use_container_width=True):
-            if recipient in st.session_state["texts"]:
-                st.session_state["texts"][recipient].append(
-                    f"{st.session_state['username']}: {text}"
-                )
-                st.success("✅ Text sent!")
-            else:
+            st.session_state["client"].ClientActionHandler.send_text_message(st.session_state['username'], recipient, text)
+            
+        if "message_status" in st.session_state:
+            if st.session_state["message_status"] == 'False':
                 st.error("❌ Recipient does not exist!")
+            else:
+                st.success("✅ Text sent!")
+            del st.session_state['message_status']                
 
     # Styled Inbox with Filtered Chats
     st.subheader("📥 Inbox")
@@ -109,16 +137,17 @@ def show_main_ui():
         if filtered_chats:
             for sender, texts in filtered_chats.items():
                 if texts:
-                    st.markdown(f"### 📨 Texts from **{sender}**")
+                    st.markdown(f"### 📨 Chat with **{sender}**")
                     for txt in texts[:st.session_state["max_texts"]]:
                         col1, col2 = st.columns([9, 1])
                         with col1:
                             with st.chat_message("user"):
-                                st.write(txt)
+                                st.write(txt['text'])
                         with col2:
                             with st.container():
                                 if st.button("🗑️", key=f"{sender}_{txt}", use_container_width=True):
                                     st.session_state["texts"][sender].remove(txt)
+                                    st.session_state["client"].ClientActionHandler.delete_text_message(txt['id'])
                                     if not st.session_state["texts"][sender]:
                                         del st.session_state["texts"][sender]
                                     st.success("Text deleted!")
@@ -126,10 +155,7 @@ def show_main_ui():
         else:
             st.info("No texts match your search.")
 
-### **🔹 UI Routing Based on Login Status**
-if "current_page" not in st.session_state:
-    st.session_state["current_page"] = "main"
-
+### **UI Routing Based on Login Status**
 if st.session_state["current_page"] == "settings":
     show_settings_ui()
 elif not st.session_state["logged_in"]:

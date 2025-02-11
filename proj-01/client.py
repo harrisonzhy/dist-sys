@@ -10,7 +10,7 @@ from utils import utils
 from actions import actions
 
 class Client:
-    def __init__(self):
+    def __init__(self, ui_callback):
         CFG = config.Config()
         self.action_dict_name = CFG.get_actions_dict()
 
@@ -26,7 +26,7 @@ class Client:
         self.connected = False
 
         self.action_handler = actions.ClientActionHandler(self, self.action_dict_name)
-        self.callback_handler = actions.ClientCallbackHandler(self, self.action_dict_name)
+        self.callback_handler = actions.ClientCallbackHandler(self, self.action_dict_name, ui_callback)
         self.server_message_queue = queue.Queue()
         self.executor = ThreadPoolExecutor(max_workers=1)
 

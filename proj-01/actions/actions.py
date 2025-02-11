@@ -36,9 +36,10 @@ class BaseActionHandler:
 
 class ClientCallbackHandler(BaseActionHandler):
     """Handles client-specific action callbacks once a server response is received."""
-    def __init__(self, client, file_path: str):
+    def __init__(self, client, file_path: str, ui_callback):
         super().__init__(file_path)
         self.client = client
+        self.ui_callback = ui_callback
 
     def status(self, contents: str):
         print(f"[Client Callback] Status: {contents}")
@@ -46,27 +47,28 @@ class ClientCallbackHandler(BaseActionHandler):
 
     def create_account(self, contents: str):
         print(f"[Client Callback] Created account: {contents}")
-        return True
-
-    def delete_account(self, contents: str):
-        print(f"[Client Callback] Deleted account: {contents}")
+        self.update_ui("account_status", contents)
         return True
 
     def login_account(self, contents: str):
         print(f"[Client Callback] Logged in: {contents}")
-        return True
-
-    def logout_account(self, contents: str):
-        print(f"[Client Callback] Logged out: {contents}")
+        self.update_ui("auth_status", contents)
         return True
 
     def send_text_message(self, contents: str):
         print(f"[Client Callback] Sent text message: {contents}")
+        self.update_ui("message_status", contents)
         return True
 
     def fetch_text_messages(self, contents: str):
         print(f"[Client Callback] Retrieved recent text messages: {contents}")
+        self.update_ui("fetched_messages", contents)
         return True
+
+    def update_ui(self, key, value):
+        """Update session state through UI callback."""
+        if self.ui_callback:
+            self.ui_callback(key, value)
 
 class ClientActionHandler(BaseActionHandler):
     """Handles client-specific actions."""
@@ -97,11 +99,6 @@ class ClientActionHandler(BaseActionHandler):
         msg_content = MSG.MessageArgs(username, hashed_password)
         msg = MSG.Message(message_args=msg_content, message_type="login_account", endpoint=self.client)
         self.client.send_server_message(msg)
-        return True
-
-    def logout_account(self) -> bool:
-        # TODO: Maybe the logout functionality should strictly be on the client side
-        print("[Client] Logging out...")
         return True
 
     def send_text_message(self, username1: str, username2: str, message_text: str) -> bool:
@@ -140,10 +137,6 @@ class ServerActionHandler(BaseActionHandler):
         print(f"[Server] Handling login request for {username}...")
         return self.server.account_db.login_account(username, hashed_password)
 
-    def logout_account(self) -> bool:
-        print("[Server] Handling logout request...")
-        return True
-
     def send_text_message(self, username1: str, username2: str, message_text: str) -> bool:
         print(f"[Server] Processing text message from {username1} to {username2}...")
         return self.server.account_db.send_text_message(username1, username2, message_text)
@@ -152,3 +145,7 @@ class ServerActionHandler(BaseActionHandler):
         print("[Server] Fetching recent text messages...")
         k = int(k)
         return self.server.account_db.fetch_text_messages(username1, username2, k)
+
+    def delete_text_message(self, message_id: str) -> bool:
+        print("[Server] Deleting text message...")
+        return self.server.account_db.delete_text_message(message_id)
