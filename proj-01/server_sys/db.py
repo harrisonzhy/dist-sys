@@ -6,8 +6,9 @@ class AccountDatabase:
     def __init__(self, db_name):
         self.db_name = db_name
         self.local = threading.local()  # Thread-local storage
-        self.init_db()
         self.query_lock = threading.Lock()
+        
+        self.init_db()
 
     def init_db(self):
         """Initialize the user database, conversations, and messages tables if they don't exist."""
@@ -50,11 +51,10 @@ class AccountDatabase:
 
     def get_conn(self):
         """Return a thread-local SQLite connection."""
-        with self.query_lock:
-            if not hasattr(self.local, 'conn'):
-                # Create a new connection for this thread
-                self.local.conn = sql.connect(self.db_name, check_same_thread=False)
-            return self.local.conn
+        if not hasattr(self.local, 'conn'):
+            # Create a new connection for this thread
+            self.local.conn = sql.connect(self.db_name, check_same_thread=False)
+        return self.local.conn
 
     def create_account(self, username: str, hashed_password: str) -> bool:
         """Adds an account to the user database given a `username` and `password`."""
