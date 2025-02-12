@@ -112,6 +112,7 @@ class Client:
         while True:
             try:
                 message_type, message_args = self.server_message_queue.get()
+                self.perform_callback(message_type, message_args)
                 future = self.executor.submit(self.perform_callback, message_type, message_args)
                 future.result()
             except queue.Empty:

@@ -1,8 +1,15 @@
 import streamlit as st
 from client import Client
 import hashlib as hasher
+import threading
+
+from streamlit_autorefresh import st_autorefresh 
+from streamlit.runtime.scriptrunner import get_script_run_ctx, add_script_run_ctx
 
 def update_ui_state(key, value):
+    ctx = get_script_run_ctx()  # Get Streamlit context
+    add_script_run_ctx(threading.current_thread()) 
+
     if key == 'fetched_messages':
         m_id, sender, text = value.split('|')
         if st.session_state['texts'][sender]:
@@ -11,7 +18,6 @@ def update_ui_state(key, value):
             st.session_state['texts'][sender] = [{'id': m_id, 'text': text}]
     else:
         st.session_state[key] = value
-    st.rerun()
 
 if "client" not in st.session_state:
     st.session_state["client"] = Client(update_ui_state)
@@ -26,6 +32,8 @@ if "texts" not in st.session_state:
 
 if "max_texts" not in st.session_state:
     st.session_state["max_texts"] = 5  # Default max number of texts per sender
+
+st_autorefresh(interval=500, key="refresh_ui")
 
 ### **Settings Page**
 def show_settings_ui():
@@ -137,3 +145,7 @@ elif not st.session_state["logged_in"]:
     show_auth_ui()
 else:
     show_main_ui()
+
+# while True:
+#     st.rerun() 
+#     time.sleep(0.5)

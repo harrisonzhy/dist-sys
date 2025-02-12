@@ -26,7 +26,7 @@ class BaseActionHandler:
         if not action_name:
             print("[Base] Action execution was unsuccessful.")
             return False
-
+        
         action_function = getattr(self, action_name, None)
         if not action_function:
             print(f"[Base] Function {action_name} not found in {self.__class__.__name__}")
@@ -108,9 +108,9 @@ class ClientActionHandler(BaseActionHandler):
         self.client.send_server_message(msg)
         return True
     
-    def fetch_text_messages(self, username1: str, username2: str, k: int) -> bool:
+    def fetch_text_messages(self, username: str, k: int) -> bool:
         print("[Client] Retrieving recent text messages...")
-        msg_content = MSG.MessageArgs(username1, username2, str(k))
+        msg_content = MSG.MessageArgs(username, str(k))
         msg = MSG.Message(message_args=msg_content, message_type="fetch_text_messages", endpoint=self.client)
         self.client.send_server_message(msg)
         return True
@@ -141,10 +141,10 @@ class ServerActionHandler(BaseActionHandler):
         print(f"[Server] Processing text message from {username1} to {username2}...")
         return self.server.account_db.send_text_message(username1, username2, message_text)
 
-    def fetch_text_messages(self, username1: str, username2: str, k: str) -> list[str]:
+    def fetch_text_messages(self, username: str, k: str) -> list[str]:
         print("[Server] Fetching recent text messages...")
         k = int(k)
-        return self.server.account_db.fetch_text_messages(username1, username2, k)
+        return self.server.account_db.fetch_text_messages(username, k)
 
     def delete_text_message(self, message_id: str) -> bool:
         print("[Server] Deleting text message...")
