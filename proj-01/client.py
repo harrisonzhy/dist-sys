@@ -13,7 +13,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, scrolledtext
 
 class Client:
-    def __init__(self, ui_callback):
+    def __init__(self):
         CFG = config.Config()
         self.action_dict_name = CFG.get_actions_dict()
 
@@ -37,6 +37,7 @@ class Client:
         print("Client port:", self.port)
 
         self.connect()
+        self.run_app()
 
     def send_server_message(self, message: MSG.Message):
         """Send a message to the server."""
@@ -99,7 +100,6 @@ class Client:
             print("[Client] Connected to the server.")
             self.connected = True
             threading.Thread(target=self.recv_server_message, daemon=True).start()
-            self.process_queued_messages()
             # threading.Thread(target=self.process_queued_messages, daemon=True).start()
         except Exception as e:
             print("[Client] Failed to connect to the server due to:", e)
@@ -135,18 +135,17 @@ class Client:
                 self.title("Messaging App")
                 self.geometry("500x500")
 
-                update_ui()
+                self.update_ui()
 
             def update_ui(self):
                 process_queue()
+                print(self.session_state)
 
                 if self.session_state['logged_in'] == False:
                     self.show_auth_ui()  
 
                 else: 
                     self.show_main_ui()
-
-                self.after(2000, update_label)  # Call update_ui again after 1 second
 
             def clear_window(self):
                 """Remove all widgets from the window before switching pages."""
@@ -176,23 +175,22 @@ class Client:
                 btn_login.grid(row=0, column=1, padx=5)
 
                 if self.session_state['account_status'] != None:
-                    if self.session_state.get("account_status", False):
+                    if self.session_state["account_status"] == False:
                         error_label = tk.Label(self, text="Error: Username already exists.", fg="red")
                         error_label.pack(pady=5)
-                    elif self.session_state.get("account_status", True):
+                    elif self.session_state["account_status"] == True:
                         success_label = tk.Label(self, text="Account creation successful! Please log in.", fg="green")
                         success_label.pack(pady=5)
                     self.session_state['account_status'] = None
 
                 if self.session_state['auth_status'] != None:
-                    if self.session_state.get("auth_status", False):
+                    if self.session_state["auth_status"] == False:
                         error_label = tk.Label(self, text="Error: Invalid credentials. Try again.", fg="red")
                         error_label.pack(pady=5)
-                    elif self.session_state.get("auth_status", True):
+                    elif self.session_state["auth_status"] == True:
                         success_label = tk.Label(self, text="Login successful! Welcome.", fg="green")
                         success_label.pack(pady=5)
                         self.session_state["logged_in"] = True
-                        self.session_state["current_page"] = "main"
                         self.after(400, self.show_main_ui)
                     self.session_state['auth_status'] = None
 
@@ -202,6 +200,7 @@ class Client:
                 password = hasher.sha256(self.password_entry.get().encode()).hexdigest()
                 action_handler.login_account(username, password)
                 self.session_state["username"] = username
+                self.after(2000, self.update_ui)
 
             def handle_create_account(self):
                 """Handle user account creation."""
@@ -209,7 +208,8 @@ class Client:
                 password = hasher.sha256(self.password_entry.get().encode()).hexdigest()
 
                 if username and password and '|' not in username:
-                    self.client.action_handler.create_account(username, password)
+                    action_handler.create_account(username, password)
+                    self.after(2000, self.update_ui)
 
             def show_settings_ui(self):
                 """Show settings page to adjust max messages per sender."""
@@ -234,23 +234,26 @@ class Client:
 
             def show_main_ui(self):
                 """Show main messaging interface."""
-                self.clear_window()
-                tk.Label(self, text=f"Hello, {self.session_state['username']}! 👋", font=("Arial", 12)).pack(pady=10)
+                if self.session_state['current_page'] != 'main':
+                    self.clear_window()
+                    tk.Label(self, text=f"Hello, {self.session_state['username']}! 👋", font=("Arial", 12)).pack(pady=10)
 
-                frame = tk.Frame(self)
-                frame.pack()
+                    frame = tk.Frame(self)
+                    frame.pack()
 
-                btn_settings = tk.Button(frame, text="⚙️ Settings", command=self.show_settings_ui, width=15)
-                btn_settings.grid(row=0, column=0, padx=5)
+                    btn_settings = tk.Button(frame, text="⚙️ Settings", command=self.show_settings_ui, width=15)
+                    btn_settings.grid(row=0, column=0, padx=5)
 
-                btn_logout = tk.Button(frame, text="Log Out", command=self.logout, width=15)
-                btn_logout.grid(row=0, column=1, padx=5)
+                    btn_logout = tk.Button(frame, text="Log Out", command=self.logout, width=15)
+                    btn_logout.grid(row=0, column=1, padx=5)
 
-                btn_delete = tk.Button(frame, text="Delete Account", command=self.delete_account, width=15)
-                btn_delete.grid(row=0, column=2, padx=5)
+                    btn_delete = tk.Button(frame, text="Delete Account", command=self.delete_account, width=15)
+                    btn_delete.grid(row=0, column=2, padx=5)
 
                 self.show_send_message_ui()
                 self.show_inbox_ui()
+
+                self.session_state["current_page"] = "main"
 
             def logout(self):
                 """Log out the user."""
@@ -260,77 +263,176 @@ class Client:
 
             def delete_account(self):
                 """Delete user account."""
-                self.client.action_handler.delete_account(self.session_state["username"])
+                action_handler.delete_account(self.session_state["username"])
                 self.logout()
                 messagebox.showinfo("Account Deleted", "Your account has been deleted.")
 
             def show_send_message_ui(self):
                 """Show send message interface."""
-                tk.Label(self, text="📩 Send a Text", font=("Arial", 12)).pack(pady=10)
+                if self.session_state['current_page'] != 'main':
+                    tk.Label(self, text="📩 Send a Text", font=("Arial", 12)).pack(pady=10)
 
-                frame = tk.Frame(self)
-                frame.pack()
+                    frame = tk.Frame(self)
+                    frame.pack()
 
-                tk.Label(frame, text="Recipient:").grid(row=0, column=0)
-                self.recipient_entry = tk.Entry(frame, width=30)
-                self.recipient_entry.grid(row=0, column=1)
+                    tk.Label(frame, text="Recipient:").grid(row=0, column=0)
+                    self.recipient_entry = tk.Entry(frame, width=30)
+                    self.recipient_entry.grid(row=0, column=1)
 
-                self.text_entry = tk.Text(self, width=40, height=4)
-                self.text_entry.pack(pady=5)
+                    self.text_entry = tk.Text(self, width=40, height=4)
+                    self.text_entry.pack(pady=5)
 
-                btn_send = tk.Button(self, text="Send", command=self.send_message, width=20)
-                btn_send.pack(pady=5)
+                    btn_send = tk.Button(self, text="Send", command=self.send_message, width=20)
+                    btn_send.pack(pady=5)
 
+                if self.session_state['message_status'] != None:
+                    if self.session_state["message_status"] == False:
+                        error_label = tk.Label(self, text="Error: User does not exist.", fg="red")
+                        error_label.pack(pady=5)
+                    elif self.session_state["message_status"] == True:
+                        messagebox.showinfo("Message Sent", "Your message has been sent.")
+                    self.session_state['message_status'] = None
+                
             def send_message(self):
                 """Send a text message."""
                 recipient = self.recipient_entry.get()
                 text = self.text_entry.get("1.0", tk.END).strip()
-                self.client.action_handler.send_text_message(self.session_state["username"], recipient, text)
-                messagebox.showinfo("Message Sent", "Your message has been sent.")
+                action_handler.send_text_message(self.session_state["username"], recipient, text)
+                self.after(2000, self.update_ui)
 
             def show_inbox_ui(self):
                 """Display messages in the inbox."""
-                tk.Label(self, text="📥 Inbox", font=("Arial", 12)).pack(pady=10)
-                self.inbox_frame = tk.Frame(self)
-                self.inbox_frame.pack()
+                if self.session_state['current_page'] != 'main':
+                    tk.Label(self, text="📥 Inbox", font=("Arial", 12)).pack(pady=10)
+                    self.inbox_frame = tk.Frame(self)
+                    self.inbox_frame.pack()
 
-                self.filter_entry = tk.Entry(self, width=30)
-                self.filter_entry.pack()
-                self.filter_entry.bind("<KeyRelease>", self.update_inbox)
+                    self.filter_entry = tk.Entry(self, width=30)
+                    self.filter_entry.pack()
+                    self.filter_entry.bind("<KeyRelease>", self.update_inbox)
 
-                self.inbox_text = scrolledtext.ScrolledText(self, width=50, height=10, state=tk.DISABLED)
-                self.inbox_text.pack()
+                    # Add Refresh Inbox button
+                    refresh_button = tk.Button(self, text="🔄 Refresh Inbox", command=self.refresh_inbox)
+                    refresh_button.pack(pady=5)
+
+                    self.inbox_text = scrolledtext.ScrolledText(self, width=50, height=10, state=tk.DISABLED)
+                    self.inbox_text.pack()
 
                 self.update_inbox()
 
+            # def update_inbox(self, event=None):
+            #     """Update inbox based on search filter."""
+            #     self.inbox_text.config(state=tk.NORMAL)
+            #     self.inbox_text.delete("1.0", tk.END)
+
+            #     filter_text = self.filter_entry.get().lower()
+            #     for counterparty in self.session_state['texts']:
+            #         if filter_text in counterparty.lower():
+            #             self.inbox_text.insert(tk.END, f"📨 Chat with {counterparty}:\n")
+            #             texts = self.session_state['texts'][counterparty]
+            #             for txt in texts[:self.session_state["max_texts"]]:
+            #                 self.inbox_text.insert(tk.END, f"  - {txt['text']}\n")
+            #             self.inbox_text.insert(tk.END, "\n")
+
+            #     self.inbox_text.config(state=tk.DISABLED)
+
             def update_inbox(self, event=None):
-                """Update inbox based on search filter."""
-                self.inbox_text.config(state=tk.NORMAL)
-                self.inbox_text.delete("1.0", tk.END)
-
+                """Update inbox with a chat-like display where messages are aligned left/right."""
+                # Clear the previous messages
+                for widget in self.inbox_frame.winfo_children():
+                    widget.destroy()
+                
                 filter_text = self.filter_entry.get().lower()
-                for sender, texts in self.session_state["texts"].items():
-                    if filter_text in sender.lower():
-                        self.inbox_text.insert(tk.END, f"📨 Chat with {sender}:\n")
-                        for txt in texts[:self.session_state["max_texts"]]:
-                            self.inbox_text.insert(tk.END, f"  - {txt['text']}\n")
-                        self.inbox_text.insert(tk.END, "\n")
 
-                self.inbox_text.config(state=tk.DISABLED)
+                # Create a Canvas for scrolling messages
+                canvas = tk.Canvas(self.inbox_frame)
+                scrollbar = ttk.Scrollbar(self.inbox_frame, orient="vertical", command=canvas.yview)
+                messages_frame = tk.Frame(canvas)
+
+                # Configure the canvas window
+                messages_frame.bind(
+                    "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+                )
+
+                canvas.create_window((0, 0), window=messages_frame, anchor="nw")
+                canvas.configure(yscrollcommand=scrollbar.set)
+
+                canvas.pack(side="left", fill="both", expand=True)
+                scrollbar.pack(side="right", fill="y")
+
+                for counterparty in self.session_state['texts']:
+                    if filter_text in counterparty.lower():
+                        # Chat header
+                        tk.Label(messages_frame, text=f"📨 Chat with {counterparty}:", font=("Arial", 10, "bold")).pack(pady=(10, 5), anchor="center")
+
+                        texts = self.session_state['texts'][counterparty]
+                        
+                        for txt in texts[:self.session_state["max_texts"]]:
+                            text_message = txt['text']
+                            is_sender = txt['is_sender']
+
+                            # Create a message bubble
+                            message_frame = tk.Frame(messages_frame, bg="#DCF8C6" if is_sender else "#EAEAEA", padx=10, pady=5)
+                            message_label = tk.Label(message_frame, text=text_message, wraplength=400, justify="left")
+
+                            # Positioning messages: left for received, right for sent
+                            if is_sender:
+                                message_frame.pack(anchor="e", padx=10, pady=2)  # Align right
+                            else:
+                                message_frame.pack(anchor="w", padx=10, pady=2)  # Align left
+                            
+                            message_label.pack()
+                
+                # Ensure scrolling works
+                self.inbox_frame.update_idletasks()
+
+            def refresh_inbox(self):
+                action_handler.fetch_text_messages(self.session_state['username'], self.session_state['max_texts'])
+                self.after(2000, self.update_ui)
+
+            # def show_inbox_ui(self):
+            #     """Display messages in the inbox."""
+            #     tk.Label(self, text="📥 Inbox", font=("Arial", 12)).pack(pady=10)
+            #     self.inbox_frame = tk.Frame(self)
+            #     self.inbox_frame.pack()
+
+            #     self.filter_entry = tk.Entry(self, width=30)
+            #     self.filter_entry.pack()
+            #     self.filter_entry.bind("<KeyRelease>", self.update_inbox)
+
+            #     self.inbox_text = scrolledtext.ScrolledText(self, width=50, height=10, state=tk.DISABLED)
+            #     self.inbox_text.pack()
+
+            #     self.update_inbox()
+
+            # def update_inbox(self, event=None):
+            #     """Update inbox based on search filter."""
+            #     self.inbox_text.config(state=tk.NORMAL)
+            #     self.inbox_text.delete("1.0", tk.END)
+
+            #     filter_text = self.filter_entry.get().lower()
+            #     for sender, texts in self.session_state["texts"].items():
+            #         if filter_text in sender.lower():
+            #             self.inbox_text.insert(tk.END, f"📨 Chat with {sender}:\n")
+            #             for txt in texts[:self.session_state["max_texts"]]:
+            #                 self.inbox_text.insert(tk.END, f"  - {txt['text']}\n")
+            #             self.inbox_text.insert(tk.END, "\n")
+
+            #     self.inbox_text.config(state=tk.DISABLED)
 
         app = MessagingApp()
         app.mainloop()
     
     def process_queued_messages(self):
         """Processes messages from the server message queue (serially)."""
-        while True:
-            try:
-                message_type, message_args = self.server_message_queue.get()
+        try:
+            while True:
+                message_type, message_args = self.server_message_queue.get_nowait()
                 self.perform_callback(message_type, message_args)
-            except queue.Empty:
-                pass
-            except Exception as e:
-                print("[Client] Message process error due to:", e)
+        except queue.Empty:
+            pass
+        except Exception as e:
+            print("[Client] Message process error due to:", e)
 
     def perform_callback(self, message_type: str, message_args: list[str]):
         action_status = self.callback_handler.execute_action(message_type, message_args)
@@ -378,8 +480,7 @@ def test_end_to_end(client):
 
 
 if __name__ == "__main__":
-    raise RuntimeError("You should not run this script directly. Import it as a module instead.")
-    # client = Client()
+    client = Client()
     # test_end_to_end(client)
     # while True:
     #     pass

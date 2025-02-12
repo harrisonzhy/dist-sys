@@ -47,26 +47,37 @@ class ClientCallbackHandler(BaseActionHandler):
 
     def create_account(self, contents: str):
         print(f"[Client Callback] Created account: {contents}")
-        self.session_state["account_status"] = bool(contents)
+        if contents == 'True':
+            self.session_state["account_status"] = True
+        else:
+            self.session_state["account_status"] = False
         return True
 
     def login_account(self, contents: str):
         print(f"[Client Callback] Logged in: {contents}")
-        self.session_state["auth_status"] = bool(contents)
+        if contents == 'True':
+            self.session_state["auth_status"] = True
+        else:
+            self.session_state["auth_status"] = False
         return True
 
     def send_text_message(self, contents: str):
         print(f"[Client Callback] Sent text message: {contents}")
-        self.session_state["message_status"] = bool(contents)
+        if contents == 'True':
+            self.session_state["message_status"] = True
+        else:
+            self.session_state["message_status"] = False
         return True
 
     def fetch_text_messages(self, contents: str):
         print(f"[Client Callback] Retrieved recent text messages: {contents}")
         m_id, sender, receiver, text = value.split('|')
-        if self.session_state['texts'][sender]:
-            self.session_state['texts'][sender].append({'id': m_id, 'sender': sender, 'receiver': receiver, 'text': text})
+        is_sender = (sender == self.session_state['username'])
+        counterparty = receiver if is_sender else receiver
+        if self.session_state['texts'][counterparty]:
+            self.session_state['texts'][counterparty].append({'id': m_id, 'is_sender': is_sender, 'text': text})
         else:
-            self.session_state['texts'][sender] = [{'id': m_id, 'sender': sender, 'receiver': receiver, 'text': text}]
+            self.session_state['texts'][counterparty] = [{'id': m_id, 'is_sender': is_sender, 'text': text}]
         return True
 
 class ClientActionHandler(BaseActionHandler):

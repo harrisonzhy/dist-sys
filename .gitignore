@@ -15,3 +15,7 @@ proj-env/
 venv/
 
 proj-01/central.db
+
+ui*.py
+
+test_ui.py
