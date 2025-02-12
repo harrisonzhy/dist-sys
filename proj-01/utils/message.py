@@ -1,3 +1,4 @@
+import json
 
 class MessageArgs:
     def __init__(self, *args):
@@ -18,13 +19,28 @@ class MessageArgs:
         args = arg_string.split("|")
         return args
 
+class MessageArgsJSON(MessageArgs):
+    def __init__(self, *args):
+        """Initialize with multiple arguments."""
+        self.args = args
+
+    def to_string(self) -> str:
+        """Returns the arguments as a JSON-formatted string."""
+        return json.dumps(self.args)
+
+    @classmethod
+    def from_json(cls, arg_string: str):
+        """Parses a JSON-formatted string and returns an argument list."""
+        args = json.loads(arg_string)
+        return args
+
 class Message:
     """
     Handles message creation and parsing.
     Structure: [Magic (8)] [Message Type (8)] [Content (0-1000)] [Magic (8)]
     """
 
-    def __init__(self, message_args: MessageArgs, message_type: str, endpoint):
+    def __init__(self, message_args, message_type: str, endpoint):
         """
         Constructor for sending messages.
         Ensures message validity before storing.

@@ -166,7 +166,8 @@ def test_end_to_end(client):
 
 
 if __name__ == "__main__":
-    client = Client()
-    test_end_to_end(client)
-    while True:
-        pass
+    raise RuntimeError("You should not run this script directly. Import it as a module instead.")
+    # client = Client()
+    # test_end_to_end(client)
+    # while True:
+    #     pass

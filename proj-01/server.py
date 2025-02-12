@@ -123,12 +123,11 @@ class Server:
         if not isinstance(ret_val, iterable):
             ret_val = [ret_val]
         
-        print(f"retval item: {ret_val}")
-
         ret_val = [str(item) for item in ret_val]
+        print(f"ret_val:", ret_val)
 
         for item in ret_val:
-            print(f"retval item: {item}")
+            # print(f"ret_val item: {item}")
             msg_content = MSG.MessageArgs(item)
             msg = MSG.Message(message_args=msg_content, message_type=message_type, endpoint=self)
             self.send_client_message(client_socket, msg)

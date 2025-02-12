@@ -84,28 +84,27 @@ class AccountDatabase:
 
     def create_conversation(self, username_1: str, username_2: str) -> bool:
         """Create a conversation (chat) between two users."""
-        with self.query_lock:
-            conn = self.get_conn()
-            cursor = conn.cursor()
+        conn = self.get_conn()
+        cursor = conn.cursor()
 
-            cursor.execute("SELECT id FROM users WHERE username = ?", (username_1,))
-            user_1 = cursor.fetchone()
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username_1,))
+        user_1 = cursor.fetchone()
 
-            cursor.execute("SELECT id FROM users WHERE username = ?", (username_2,))
-            user_2 = cursor.fetchone()
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username_2,))
+        user_2 = cursor.fetchone()
 
-            if user_1 and user_2:
-                user_1_id, user_2_id = user_1[0], user_2[0]
-                cursor.execute("""
-                    INSERT INTO conversations (user_id_1, user_id_2) 
-                    VALUES (?, ?)
-                """, (user_1_id, user_2_id))
-                conn.commit()
-                print(f"[Server] Conversation between '{username_1}' and '{username_2}' created.")
-                return True
-            else:
-                print("[Server] Error: One or more users not found.")
-                return False
+        if user_1 and user_2:
+            user_1_id, user_2_id = user_1[0], user_2[0]
+            cursor.execute("""
+                INSERT INTO conversations (user_id_1, user_id_2) 
+                VALUES (?, ?)
+            """, (user_1_id, user_2_id))
+            conn.commit()
+            print(f"[Server] Conversation between '{username_1}' and '{username_2}' created.")
+            return True
+        else:
+            print("[Server] Error: One or more users not found.")
+            return False
 
     def send_text_message(self, username_1: str, username_2: str, message_text: str) -> bool:
         """Add a message to a conversation between two users where `username_1` is sender and `username_2` is receiver."""
