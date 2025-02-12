@@ -36,10 +36,10 @@ class BaseActionHandler:
 
 class ClientCallbackHandler(BaseActionHandler):
     """Handles client-specific action callbacks once a server response is received."""
-    def __init__(self, client, file_path: str, ui_callback):
+    def __init__(self, client, file_path: str, session_state = None):
         super().__init__(file_path)
         self.client = client
-        self.ui_callback = ui_callback
+        self.session_state = session_state
 
     def status(self, contents: str):
         print(f"[Client Callback] Status: {contents}")
@@ -47,28 +47,27 @@ class ClientCallbackHandler(BaseActionHandler):
 
     def create_account(self, contents: str):
         print(f"[Client Callback] Created account: {contents}")
-        self.update_ui("account_status", contents)
+        self.session_state["account_status"] = bool(contents)
         return True
 
     def login_account(self, contents: str):
         print(f"[Client Callback] Logged in: {contents}")
-        self.update_ui("auth_status", contents)
+        self.session_state["auth_status"] = bool(contents)
         return True
 
     def send_text_message(self, contents: str):
         print(f"[Client Callback] Sent text message: {contents}")
-        self.update_ui("message_status", contents)
+        self.session_state["message_status"] = bool(contents)
         return True
 
     def fetch_text_messages(self, contents: str):
         print(f"[Client Callback] Retrieved recent text messages: {contents}")
-        self.update_ui("fetched_messages", contents)
+        m_id, sender, receiver, text = value.split('|')
+        if self.session_state['texts'][sender]:
+            self.session_state['texts'][sender].append({'id': m_id, 'sender': sender, 'receiver': receiver, 'text': text})
+        else:
+            self.session_state['texts'][sender] = [{'id': m_id, 'sender': sender, 'receiver': receiver, 'text': text}]
         return True
-
-    def update_ui(self, key, value):
-        """Update session state through UI callback."""
-        if self.ui_callback:
-            self.ui_callback(key, value)
 
 class ClientActionHandler(BaseActionHandler):
     """Handles client-specific actions."""
