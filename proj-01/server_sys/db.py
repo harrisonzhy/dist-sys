@@ -58,6 +58,10 @@ class AccountDatabase:
 
     def create_account(self, username: str, hashed_password: str) -> bool:
         """Adds an account to the user database given a `username` and `password`."""
+        if (not username) or (not hashed_password):
+            print("[Server] Error: Username or password is empty.")
+            return False
+
         with self.query_lock:
             conn = self.get_conn()
             cursor = conn.cursor()
@@ -84,6 +88,10 @@ class AccountDatabase:
 
     def create_conversation(self, username_1: str, username_2: str) -> bool:
         """Create a conversation (chat) between two users."""
+        if username_1 == username_2:
+            print("[Server] Error: Cannot send message to self.")
+            return False
+
         conn = self.get_conn()
         cursor = conn.cursor()
 
@@ -108,6 +116,10 @@ class AccountDatabase:
 
     def send_text_message(self, username_1: str, username_2: str, message_text: str) -> bool:
         """Add a message to a conversation between two users where `username_1` is sender and `username_2` is receiver."""
+        if not message_text:
+            print("[Server] Empty message is invalid.")
+            return False
+
         with self.query_lock:
             conn = self.get_conn()
             cursor = conn.cursor()

@@ -1,6 +1,6 @@
 import pytest
 import multiprocessing
-from db import AccountDatabase 
+from db import AccountDatabase
 
 @pytest.fixture
 def test_db():
@@ -29,6 +29,15 @@ def test_incorrect_password(test_db):
 def test_nonexistent_user(test_db):
     assert test_db.login_account("nonexistent", "random_hash") == False
 
+def test_empty_username(test_db):
+    assert test_db.create_account("", "password") == False
+
+def test_empty_password(test_db):
+    assert test_db.create_account("user_no_pass", "") == False
+
+def test_special_characters_username(test_db):
+    assert test_db.create_account("user@name", "secure_pass") == True
+
 ### ---- 2. Conversation Tests ---- ###
 
 def test_create_conversation(test_db):
@@ -36,9 +45,19 @@ def test_create_conversation(test_db):
     test_db.create_account("user2", "pass2")
     assert test_db.create_conversation("user1", "user2") == True
 
+def test_duplicate_conversation(test_db):
+    test_db.create_account("userA", "passA")
+    test_db.create_account("userB", "passB")
+    test_db.create_conversation("userA", "userB")
+    assert test_db.create_conversation("userA", "userB") == False  # Conversation should not be duplicated
+
 def test_conversation_with_nonexistent_user(test_db):
     test_db.create_account("real_user", "pass")
     assert test_db.create_conversation("real_user", "fake_user") == False
+
+def test_conversation_with_self(test_db):
+    test_db.create_account("self_user", "pass")
+    assert test_db.create_conversation("self_user", "self_user") == False  # Should not allow self-chat
 
 ### ---- 3. Message Tests ---- ###
 
@@ -48,23 +67,62 @@ def test_send_message(test_db):
     test_db.create_conversation("alice", "bob")
     assert test_db.send_text_message("alice", "bob", "Hello Bob!") == True
 
+def test_send_message_creates_conversation(test_db):
+    test_db.create_account("alice", "pass1")
+    test_db.create_account("bob", "pass2")
+    assert test_db.send_text_message("alice", "bob", "Hello Bob!") == True  # Should auto-create conversation
+
 def test_send_message_to_nonexistent_user(test_db):
     test_db.create_account("alice", "pass")
     assert test_db.send_text_message("alice", "unknown_user", "Hello?") == False
+
+def test_send_empty_message(test_db):
+    test_db.create_account("alice", "pass")
+    test_db.create_account("bob", "pass")
+    test_db.create_conversation("alice", "bob")
+    assert test_db.send_text_message("alice", "bob", "") == False  # Should not allow empty messages
 
 def test_fetch_messages(test_db):
     test_db.create_account("alice", "pass1")
     test_db.create_account("bob", "pass2")
     test_db.send_text_message("alice", "bob", "Hello Bob!")
     test_db.send_text_message("bob", "alice", "Hi Alice!")
-    assert test_db.fetch_text_messages("alice", "bob", 2) == True
+    messages = test_db.fetch_text_messages("alice", 2)
+    assert len(messages) == 2  # Should return both messages
 
 def test_fetch_no_messages(test_db):
     test_db.create_account("user1", "pass1")
     test_db.create_account("user2", "pass2")
-    assert test_db.fetch_text_messages("user1", "user2", 5) == False
+    messages = test_db.fetch_text_messages("user1", 5)
+    assert messages == []  # Should return empty list
 
-### ---- 4. Security & Edge Case Tests ---- ###
+### ---- 4. Message Deletion Tests ---- ###
+
+def test_delete_message(test_db):
+    test_db.create_account("alice", "pass1")
+    test_db.create_account("bob", "pass2")
+    test_db.send_text_message("alice", "bob", "This is a test message")
+    messages = test_db.fetch_text_messages("alice", 1)
+    
+    message_id = int(messages[0].split('|')[0])  # Extract message ID
+    assert test_db.delete_text_message(message_id) == True
+
+def test_delete_nonexistent_message(test_db):
+    assert test_db.delete_text_message(99999) == False  # Message ID doesn't exist
+
+def test_delete_last_message_deletes_conversation(test_db):
+    test_db.create_account("alice", "pass1")
+    test_db.create_account("bob", "pass2")
+    test_db.send_text_message("alice", "bob", "Only message")
+    messages = test_db.fetch_text_messages("alice", 1)
+    
+    message_id = int(messages[0].split('|')[0])
+    test_db.delete_text_message(message_id)
+
+    messages_after = test_db.fetch_text_messages("alice", 1)
+    assert messages_after == []  # Should be empty
+
+### ---- 5. Security & Edge Case Tests ---- ###
 
 def test_sql_injection(test_db):
     test_db.create_account("safe_user", "safe_password")
@@ -86,7 +144,8 @@ def test_concurrent_access(test_db):
     process1.join()
     process2.join()
 
-    assert test_db.fetch_text_messages("multi_user1", "multi_user2", 1) == True
+    messages = test_db.fetch_text_messages("multi_user1", 20)
+    assert len(messages) >= 10  # Should at least have some messages (even if race conditions exist)
 
 def test_database_cleanup(test_db):
     test_db.create_account("temp_user", "password")

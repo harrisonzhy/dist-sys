@@ -2,6 +2,8 @@
 
 !.gitignore
 
+proj-01/config.ini
+
 __pycache__/
 *.pyc
 *.pyo

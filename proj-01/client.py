@@ -139,7 +139,6 @@ class Client:
 
             def update_ui(self):
                 process_queue()
-                print(self.session_state)
 
                 if self.session_state['logged_in'] == False:
                     self.show_auth_ui()  
@@ -201,7 +200,7 @@ class Client:
                 password = hasher.sha256(self.password_entry.get().encode()).hexdigest()
                 action_handler.login_account(username, password)
                 self.session_state["username"] = username
-                self.after(2000, self.update_ui)
+                self.after(1000, self.update_ui)
 
             def handle_create_account(self):
                 """Handle user account creation."""
@@ -210,7 +209,7 @@ class Client:
 
                 if username and password and '|' not in username:
                     action_handler.create_account(username, password)
-                    self.after(2000, self.update_ui)
+                    self.after(1000, self.update_ui)
 
             def show_settings_ui(self):
                 """Show settings page to adjust max messages per sender."""
@@ -236,7 +235,6 @@ class Client:
 
             def show_main_ui(self):
                 """Show main messaging interface."""
-                print('show_main_ui')
                 if self.session_state['current_page'] != 'main':
                     self.clear_window()
                     tk.Label(self, text=f"Hello, {self.session_state['username']}! 👋", font=("Arial", 12)).pack(pady=10)
@@ -252,8 +250,6 @@ class Client:
 
                     btn_delete = tk.Button(frame, text="Delete Account", command=self.delete_account, width=15)
                     btn_delete.grid(row=0, column=2, padx=5)
-
-                print('show_send_message_ui')
 
                 self.show_send_message_ui()
                 self.show_inbox_ui()
@@ -296,23 +292,19 @@ class Client:
                         error_label = tk.Label(self, text="Error: User does not exist.", fg="red")
                         error_label.pack(pady=5)
                     elif self.session_state["message_status"] == True:
-                        print('about to show success')
                         messagebox.showinfo("Message Sent", "Your message has been sent.")
                     self.session_state['message_status'] = None
-
-                print('end_message_status')
                 
             def send_message(self):
                 """Send a text message."""
                 recipient = self.recipient_entry.get()
                 text = self.text_entry.get("1.0", tk.END).strip()
                 action_handler.send_text_message(self.session_state["username"], recipient, text)
-                self.after(2000, self.update_ui)
+                self.after(1000, self.update_ui)
 
             def show_inbox_ui(self):
                 """Display messages in the inbox."""
                 if self.session_state['current_page'] != 'main':
-                    print('show_inbox_ui')
                     tk.Label(self, text="📥 Inbox", font=("Arial", 12)).pack(pady=10)
                     self.inbox_frame = tk.Frame(self)
                     self.inbox_frame.pack()
@@ -358,10 +350,6 @@ class Client:
                     if filter_text in counterparty.lower():
                         # Chat header
                         tk.Label(messages_frame, text=f"📨 Chat with {counterparty}:", font=("Arial", 10, "bold")).pack(pady=(10, 5), anchor="center")
-
-                        print(f"counterparty: {counterparty}")
-                        print(f"current user: {self.session_state['username']}")
-
                         texts = self.session_state['texts'][counterparty]
 
                         for txt in texts[:self.session_state["max_texts"]]:
@@ -386,7 +374,6 @@ class Client:
 
                             # Position elements: Align right for sent messages, left for received
                             if is_sender:
-                                print('right')
                                 delete_button.pack(side="right", padx=(5, 0))  # Delete button to the right
                                 message_frame.pack(side="right", padx=10, pady=2)
                             else:
@@ -411,7 +398,7 @@ class Client:
 
             def refresh_inbox(self):
                 action_handler.fetch_text_messages(self.session_state['username'], self.session_state['max_texts'])
-                self.after(2000, self.update_ui)
+                self.after(1000, self.update_ui)
 
         app = MessagingApp()
         app.mainloop()
@@ -421,10 +408,7 @@ class Client:
         try:
             while True:
                 message_type, message_args = self.server_message_queue.get_nowait()
-                print(message_type)
-                print(message_args)
                 self.perform_callback(message_type, message_args)
-                print('completed callback')
         except queue.Empty:
             pass
         except Exception as e:
