@@ -150,7 +150,7 @@ class AccountDatabase:
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT m.message_id, u1.username, u2.username, m.message_text, 
+                SELECT m.message_id, u1.username, u2.username, m.message_text
                 FROM messages m
                 JOIN conversations c ON m.conversation_id = c.conversation_id
                 JOIN users u1 ON u1.id = c.user_id_1
@@ -163,18 +163,54 @@ class AccountDatabase:
 
             fetched_messages = cursor.fetchall()
             messages = []
-            for message_data in fetched_messages:
+            for row in fetched_messages:
+                message_data = []
                 for i in range(4):
-                    message_data[i] = str(message_data[i])
+                    message_data.append(str(row[i]))
                 messages.append('|'.join(message_data))
 
             if messages:
-                print(f"[Server] The k={k} most recent messages between '{username_1}' and '{username_2}':")
+                print(f"[Server] The k={k} most recent messages involving '{username_1}':")
                 for message in messages:
                     print("[+]", message)
             else:
-                print(f"[Server] No messages found between '{username_1}' and '{username_2}'.")
+                print(f"[Server] No messages found involving'{username_1}'.")
             return messages
+
+    def delete_text_message(self, message_id):
+        """
+        Deletes a message from the database based on the given message_id.
+        If the deleted message was the last in its conversation, the conversation is also deleted.
+        """
+        message_id = int(message_id)
+        conn = self.get_conn()
+        cursor = conn.cursor()
+
+        # Find the conversation_id of the message to be deleted
+        cursor.execute("SELECT conversation_id FROM messages WHERE message_id = ?", (message_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            return False  # Message not found
+
+        conversation_id = row[0]
+
+        # Delete the message
+        cursor.execute("DELETE FROM messages WHERE message_id = ?", (message_id,))
+        conn.commit()
+
+        # Check if there are any remaining messages in the conversation
+        cursor.execute("SELECT COUNT(*) FROM messages WHERE conversation_id = ?", (conversation_id,))
+        remaining_messages = cursor.fetchone()[0]
+
+        if remaining_messages == 0:
+            # Delete the conversation if no messages are left
+            cursor.execute("DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))
+            conn.commit()
+
+        cursor.close()
+        return True
 
     def close(self):
         """Close the connection for the current thread."""

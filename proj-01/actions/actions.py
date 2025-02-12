@@ -69,12 +69,11 @@ class ClientCallbackHandler(BaseActionHandler):
             self.session_state["message_status"] = False
         return True
 
-    def fetch_text_messages(self, contents: str):
-        print(f"[Client Callback] Retrieved recent text messages: {contents}")
-        m_id, sender, receiver, text = value.split('|')
+    def fetch_text_messages(self, m_id: str, sender: str, receiver: str, text: str):
+        print(f"[Client Callback] Retrieved recent text messages: {'|'.join([m_id, sender, receiver, text])}")
         is_sender = (sender == self.session_state['username'])
-        counterparty = receiver if is_sender else receiver
-        if self.session_state['texts'][counterparty]:
+        counterparty = receiver if is_sender else sender
+        if counterparty in self.session_state['texts']:
             self.session_state['texts'][counterparty].append({'id': m_id, 'is_sender': is_sender, 'text': text})
         else:
             self.session_state['texts'][counterparty] = [{'id': m_id, 'is_sender': is_sender, 'text': text}]
@@ -122,6 +121,13 @@ class ClientActionHandler(BaseActionHandler):
         print("[Client] Retrieving recent text messages...")
         msg_content = MSG.MessageArgs(username, str(k))
         msg = MSG.Message(message_args=msg_content, message_type="fetch_text_messages", endpoint=self.client)
+        self.client.send_server_message(msg)
+        return True
+
+    def delete_text_message(self, message_id: str) -> bool:
+        print(f"[Client] Deleting text message with id {message_id}...")
+        msg_content = MSG.MessageArgs(message_id)
+        msg = MSG.Message(message_args=msg_content, message_type="delete_text_message", endpoint=self.client)
         self.client.send_server_message(msg)
         return True
 

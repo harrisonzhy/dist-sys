@@ -154,6 +154,7 @@ class Client:
 
             def show_auth_ui(self):
                 """Show authentication (login/signup) UI."""
+                self.session_state['current_page'] = 'auth'
                 self.clear_window()
                 tk.Label(self, text="Welcome! Please Log In or Create an Account", font=("Arial", 12)).pack(pady=10)
 
@@ -234,6 +235,7 @@ class Client:
 
             def show_main_ui(self):
                 """Show main messaging interface."""
+                print('show_main_ui')
                 if self.session_state['current_page'] != 'main':
                     self.clear_window()
                     tk.Label(self, text=f"Hello, {self.session_state['username']}! 👋", font=("Arial", 12)).pack(pady=10)
@@ -250,6 +252,8 @@ class Client:
                     btn_delete = tk.Button(frame, text="Delete Account", command=self.delete_account, width=15)
                     btn_delete.grid(row=0, column=2, padx=5)
 
+                print('show_send_message_ui')
+
                 self.show_send_message_ui()
                 self.show_inbox_ui()
 
@@ -259,6 +263,7 @@ class Client:
                 """Log out the user."""
                 self.session_state["logged_in"] = False
                 self.session_state["username"] = None
+                self.session_state["texts"] = {}
                 self.show_auth_ui()
 
             def delete_account(self):
@@ -290,8 +295,11 @@ class Client:
                         error_label = tk.Label(self, text="Error: User does not exist.", fg="red")
                         error_label.pack(pady=5)
                     elif self.session_state["message_status"] == True:
+                        print('about to show success')
                         messagebox.showinfo("Message Sent", "Your message has been sent.")
                     self.session_state['message_status'] = None
+
+                print('end_message_status')
                 
             def send_message(self):
                 """Send a text message."""
@@ -303,6 +311,7 @@ class Client:
             def show_inbox_ui(self):
                 """Display messages in the inbox."""
                 if self.session_state['current_page'] != 'main':
+                    print('show_inbox_ui')
                     tk.Label(self, text="📥 Inbox", font=("Arial", 12)).pack(pady=10)
                     self.inbox_frame = tk.Frame(self)
                     self.inbox_frame.pack()
@@ -337,7 +346,7 @@ class Client:
             #     self.inbox_text.config(state=tk.DISABLED)
 
             def update_inbox(self, event=None):
-                """Update inbox with a chat-like display where messages are aligned left/right."""
+                """Update inbox with a chat-like display where messages are aligned left/right, each with a delete button."""
                 # Clear the previous messages
                 for widget in self.inbox_frame.winfo_children():
                     widget.destroy()
@@ -346,7 +355,7 @@ class Client:
 
                 # Create a Canvas for scrolling messages
                 canvas = tk.Canvas(self.inbox_frame)
-                scrollbar = ttk.Scrollbar(self.inbox_frame, orient="vertical", command=canvas.yview)
+                scrollbar = tk.Scrollbar(self.inbox_frame, orient="vertical", command=canvas.yview)
                 messages_frame = tk.Frame(canvas)
 
                 # Configure the canvas window
@@ -365,26 +374,54 @@ class Client:
                         # Chat header
                         tk.Label(messages_frame, text=f"📨 Chat with {counterparty}:", font=("Arial", 10, "bold")).pack(pady=(10, 5), anchor="center")
 
+                        print(f"counterparty: {counterparty}")
+                        print(f"current user: {self.session_state['username']}")
+
                         texts = self.session_state['texts'][counterparty]
-                        
+
                         for txt in texts[:self.session_state["max_texts"]]:
                             text_message = txt['text']
                             is_sender = txt['is_sender']
+                            message_id = txt['id'] 
 
-                            # Create a message bubble
-                            message_frame = tk.Frame(messages_frame, bg="#DCF8C6" if is_sender else "#EAEAEA", padx=10, pady=5)
+                            # Create a frame for the message and delete button
+                            message_container = tk.Frame(messages_frame)
+                            
+                            # Message bubble
+                            message_frame = tk.Frame(
+                                message_container, bg="#DCF8C6" if is_sender else "#EAEAEA", padx=10, pady=5
+                            )
                             message_label = tk.Label(message_frame, text=text_message, wraplength=400, justify="left")
 
-                            # Positioning messages: left for received, right for sent
+                            # Delete button
+                            delete_button = tk.Button(
+                                message_container, text="❌", font=("Arial", 8), padx=2, pady=2,
+                                command=lambda cp=counterparty, mid=message_id: self.delete_message(cp, mid)
+                            )
+
+                            # Position elements: Align right for sent messages, left for received
                             if is_sender:
-                                message_frame.pack(anchor="e", padx=10, pady=2)  # Align right
+                                delete_button.pack(side="right", padx=(5, 0))  # Delete button to the right
+                                message_frame.pack(side="right", padx=10, pady=2)
                             else:
-                                message_frame.pack(anchor="w", padx=10, pady=2)  # Align left
-                            
+                                message_frame.pack(side="left", padx=10, pady=2)
+                                delete_button.pack(side="left", padx=(0, 5))  # Delete button to the left
+
                             message_label.pack()
-                
+                            message_container.pack(fill="x", padx=5, pady=2, anchor="e" if is_sender else "w")
+
                 # Ensure scrolling works
                 self.inbox_frame.update_idletasks()
+
+            def delete_message(self, counterparty, message_id):
+                """Deletes a message by its ID and updates the inbox."""
+                if counterparty in self.session_state['texts']:
+                    # Filter out the message with the given ID
+                    self.session_state['texts'][counterparty] = [
+                        txt for txt in self.session_state['texts'][counterparty] if txt['id'] != message_id
+                    ]
+                self.update_inbox() 
+                action_handler.delete_text_message(message_id)
 
             def refresh_inbox(self):
                 action_handler.fetch_text_messages(self.session_state['username'], self.session_state['max_texts'])
@@ -428,7 +465,10 @@ class Client:
         try:
             while True:
                 message_type, message_args = self.server_message_queue.get_nowait()
+                print(message_type)
+                print(message_args)
                 self.perform_callback(message_type, message_args)
+                print('completed callback')
         except queue.Empty:
             pass
         except Exception as e:
