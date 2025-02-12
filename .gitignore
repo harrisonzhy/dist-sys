@@ -8,3 +8,10 @@ __pycache__/
 *.pyd
 *.db
 
+proj-env/
+
+.pytest_cache/
+
+venv/
+
+proj-01/central.db
