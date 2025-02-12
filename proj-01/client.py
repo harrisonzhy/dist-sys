@@ -214,6 +214,7 @@ class Client:
 
             def show_settings_ui(self):
                 """Show settings page to adjust max messages per sender."""
+                self.session_state['current_page'] = 'settings'
                 self.clear_window()
                 tk.Label(self, text="⚙️ Settings", font=("Arial", 14)).pack(pady=10)
 
@@ -329,22 +330,6 @@ class Client:
 
                 self.update_inbox()
 
-            # def update_inbox(self, event=None):
-            #     """Update inbox based on search filter."""
-            #     self.inbox_text.config(state=tk.NORMAL)
-            #     self.inbox_text.delete("1.0", tk.END)
-
-            #     filter_text = self.filter_entry.get().lower()
-            #     for counterparty in self.session_state['texts']:
-            #         if filter_text in counterparty.lower():
-            #             self.inbox_text.insert(tk.END, f"📨 Chat with {counterparty}:\n")
-            #             texts = self.session_state['texts'][counterparty]
-            #             for txt in texts[:self.session_state["max_texts"]]:
-            #                 self.inbox_text.insert(tk.END, f"  - {txt['text']}\n")
-            #             self.inbox_text.insert(tk.END, "\n")
-
-            #     self.inbox_text.config(state=tk.DISABLED)
-
             def update_inbox(self, event=None):
                 """Update inbox with a chat-like display where messages are aligned left/right, each with a delete button."""
                 # Clear the previous messages
@@ -401,6 +386,7 @@ class Client:
 
                             # Position elements: Align right for sent messages, left for received
                             if is_sender:
+                                print('right')
                                 delete_button.pack(side="right", padx=(5, 0))  # Delete button to the right
                                 message_frame.pack(side="right", padx=10, pady=2)
                             else:
@@ -426,36 +412,6 @@ class Client:
             def refresh_inbox(self):
                 action_handler.fetch_text_messages(self.session_state['username'], self.session_state['max_texts'])
                 self.after(2000, self.update_ui)
-
-            # def show_inbox_ui(self):
-            #     """Display messages in the inbox."""
-            #     tk.Label(self, text="📥 Inbox", font=("Arial", 12)).pack(pady=10)
-            #     self.inbox_frame = tk.Frame(self)
-            #     self.inbox_frame.pack()
-
-            #     self.filter_entry = tk.Entry(self, width=30)
-            #     self.filter_entry.pack()
-            #     self.filter_entry.bind("<KeyRelease>", self.update_inbox)
-
-            #     self.inbox_text = scrolledtext.ScrolledText(self, width=50, height=10, state=tk.DISABLED)
-            #     self.inbox_text.pack()
-
-            #     self.update_inbox()
-
-            # def update_inbox(self, event=None):
-            #     """Update inbox based on search filter."""
-            #     self.inbox_text.config(state=tk.NORMAL)
-            #     self.inbox_text.delete("1.0", tk.END)
-
-            #     filter_text = self.filter_entry.get().lower()
-            #     for sender, texts in self.session_state["texts"].items():
-            #         if filter_text in sender.lower():
-            #             self.inbox_text.insert(tk.END, f"📨 Chat with {sender}:\n")
-            #             for txt in texts[:self.session_state["max_texts"]]:
-            #                 self.inbox_text.insert(tk.END, f"  - {txt['text']}\n")
-            #             self.inbox_text.insert(tk.END, "\n")
-
-            #     self.inbox_text.config(state=tk.DISABLED)
 
         app = MessagingApp()
         app.mainloop()
