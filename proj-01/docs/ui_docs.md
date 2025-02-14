@@ -1,4 +1,6 @@
-## UI Components
+# UI Documentation
+
+## Components
 
 ### 1. Authentication UI
 

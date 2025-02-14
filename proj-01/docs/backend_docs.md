@@ -1,4 +1,4 @@
-# Project Documentation
+# Backend Documentation
 
 This document gives a brief overview of the code layout in this repository as well as the underlying client-server architecture.
 
@@ -216,6 +216,19 @@ The `test_db.py` script provides a way to inspect the SQLite database contents f
 6. **`disconnect()`**  
    - Closes the client socket and marks `connected` as `False`.
 
+## UI Internals
+
+The below provides an overview of the Tkinter-based messaging application. It describes the structure, UI components, and key functionalities of the application, which has a graphical user interface (GUI) built with Tkinter that allows users to log in, send messages, and manage their accounts. It maintains session state and updates the UI dynamically based on user interactions.
+
+The application initializes with a session state that maintains authentication, messaging, and account-related statuses. Key session state parameters include:
+
+- `logged_in`: Boolean flag indicating login status.
+- `username`: Stores the current logged-in username.
+- `texts`: Dictionary storing messages per counterparty.
+- `max_texts`: Maximum number of texts per sender.
+- `current_page`: Tracks the current UI page (e.g., 'auth', 'main', 'settings').
+- `auth_status`, `account_status`, `message_status`: Flags indicating the success or failure of various actions.
+
 ## Supporting Modules
 
 ### `utils/message.py`
@@ -234,20 +247,3 @@ The `test_db.py` script provides a way to inspect the SQLite database contents f
   ```
 ### `utils/utils.py`
 - `recv_all(socket, n)` is a helper function to poll until all specified `n` bytes are read from the `socket`.
-
-## UI Documentation
-
-The below provides an overview of the implementation of the MessagingApp, a Tkinter-based messaging application. It describes the structure, UI components, and key functionalities of the application.
-
-The MessagingApp is a graphical user interface (GUI) application built with Tkinter that allows users to log in, send messages, and manage their accounts. The application maintains session state and updates the UI dynamically based on user interactions.
-
-## Configuration
-
-The application initializes with a session state that maintains authentication, messaging, and account-related statuses. Key session state parameters include:
-
-- `logged_in`: Boolean flag indicating login status.
-- `username`: Stores the current logged-in username.
-- `texts`: Dictionary storing messages per counterparty.
-- `max_texts`: Maximum number of texts per sender.
-- `current_page`: Tracks the current UI page (e.g., 'auth', 'main', 'settings').
-- `auth_status`, `account_status`, `message_status`: Flags indicating the success or failure of various actions.
