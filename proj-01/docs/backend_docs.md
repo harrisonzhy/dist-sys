@@ -30,9 +30,6 @@ Defines the client’s **host** and **port**.
   Sizes (in bytes) reserved for validating the message header.  
 - **`msg_max_size`**  
   The maximum allowed payload size for a single message.
-#### `[PROTOCOL]`
-- **`protocol`**  
-  Specifies how messages are serialized. For instance, `json` indicates JSON-based encoding, and `custom` indicates the default custom protocol.
 #### `[ACTIONS]`
 - **`actions`**  
   Points to `actions.json`, which defines the available actions and how they are routed or handled by both client and server.
@@ -50,7 +47,6 @@ This file defines the mapping between action codes and their corresponding actio
     "00000001": "create_account",
     "00000002": "delete_account",
     "00000003": "login_account",
-    "00000004": "logout_account",
     "00000005": "send_text_message",
     "00000006": "fetch_text_messages",
     "00000007": "delete_text_message"

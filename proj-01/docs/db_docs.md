@@ -1,4 +1,4 @@
-# AccountDatabase Class Documentation
+# Custom Database API Documentation
 
 ## Overview
 
