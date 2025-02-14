@@ -37,7 +37,6 @@ class Client:
         print("Client port:", self.port)
 
         self.connect()
-        self.run_app()
 
     def send_server_message(self, message: MSG.Message):
         """Send a message to the server."""
@@ -461,6 +460,4 @@ def test_end_to_end(client):
 
 if __name__ == "__main__":
     client = Client()
-    # test_end_to_end(client)
-    # while True:
-    #     pass
+    client.run_app()
