@@ -88,6 +88,53 @@ def test_db():
 - `test_concurrent_access`: Simulates concurrent messaging to validate database integrity.
 - `test_database_cleanup`: Ensures the database can be properly closed and reopened.
 
+### 6. Account Deletion Tests
+
+**Test Cases:**
+
+- Delete an account successfully
+- Prevent deletion of nonexistent accounts
+- Ensure deleting an account removes conversations
+
+### 7. Advanced Message Tests
+
+**Test Cases:**
+
+- Prevent sending messages with invalid sender/receiver
+- Bulk message deletion test
+
+### 8. Message Retrieval Tests
+
+**Test Cases:**
+
+- Ensure ordering of fetched messages (latest first)
+- Ensure message retrieval respects limits
+
+### 9. Edge Cases
+
+**Test Cases:**
+
+- Fetch messages from an empty database
+- Handle messages containing special characters
+- Database cleanup verification
+
+## Sample Test Implementation
+
+```python
+def test_create_account(test_db):
+    assert test_db.create_account("test_user", "hashed_password") == True
+
+def test_duplicate_account(test_db):
+    test_db.create_account("duplicate_user", "password")
+    assert test_db.create_account("duplicate_user", "password") == False
+
+def test_successful_login(test_db):
+    test_db.create_account("login_user", "correct_hash")
+    assert test_db.login_account("login_user", "correct_hash") == True
+```
+
+This expanded test documentation ensures thorough verification of `AccountDatabase` functionalities, covering both common and edge cases.
+
 ## [Client-Server Integration Test Suite Documentation]
 
 ## Overview
