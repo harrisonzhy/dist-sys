@@ -1,13 +1,19 @@
-import pytest
 import multiprocessing
+import tempfile
+import os
 from db import AccountDatabase
 
-@pytest.fixture
+import pytest
+
+TEMP_DB_PATH = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name  
+
+@pytest.fixture(scope="session")
 def test_db():
-    """Fixture to initialize and clean up an in-memory test database."""
-    db = AccountDatabase(":memory:")  # Use an in-memory database for testing
+    """Fixture to initialize and clean up a file-based test database for multiprocessing support."""
+    db = AccountDatabase(TEMP_DB_PATH)  # Use file-based database
     yield db
     db.close()
+    os.remove(TEMP_DB_PATH)  # Cleanup after tests
 
 ### ---- 1. User Account Tests ---- ###
 
@@ -111,15 +117,15 @@ def test_delete_nonexistent_message(test_db):
     assert test_db.delete_text_message(99999) == False  # Message ID doesn't exist
 
 def test_delete_last_message_deletes_conversation(test_db):
-    test_db.create_account("alice", "pass1")
-    test_db.create_account("bob", "pass2")
-    test_db.send_text_message("alice", "bob", "Only message")
-    messages = test_db.fetch_text_messages("alice", 1)
+    test_db.create_account("daniel", "pass1")
+    test_db.create_account("ron", "pass2")
+    test_db.send_text_message("daniel", "ron", "Only message")
+    messages = test_db.fetch_text_messages("daniel", 1)
     
     message_id = int(messages[0].split('|')[0])
     test_db.delete_text_message(message_id)
 
-    messages_after = test_db.fetch_text_messages("alice", 1)
+    messages_after = test_db.fetch_text_messages("daniel", 1)
     assert messages_after == []  # Should be empty
 
 ### ---- 5. Security & Edge Case Tests ---- ###
@@ -129,15 +135,19 @@ def test_sql_injection(test_db):
     assert test_db.login_account("safe_user'; --", "irrelevant") == False
 
 def test_concurrent_access(test_db):
+    """Test concurrent access by multiple processes sending messages."""
     test_db.create_account("multi_user1", "pass1")
     test_db.create_account("multi_user2", "pass2")
 
-    def send_messages():
+    def send_messages(db_path):
+        """Each process should create its own connection to the database."""
+        test_db = AccountDatabase(db_path)  # New connection for each process
         for _ in range(10):
             test_db.send_text_message("multi_user1", "multi_user2", "Hello!")
+        test_db.close()
 
-    process1 = multiprocessing.Process(target=send_messages)
-    process2 = multiprocessing.Process(target=send_messages)
+    process1 = multiprocessing.Process(target=send_messages, args=(TEMP_DB_PATH,))
+    process2 = multiprocessing.Process(target=send_messages, args=(TEMP_DB_PATH,))
 
     process1.start()
     process2.start()
@@ -145,9 +155,14 @@ def test_concurrent_access(test_db):
     process2.join()
 
     messages = test_db.fetch_text_messages("multi_user1", 20)
-    assert len(messages) >= 10  # Should at least have some messages (even if race conditions exist)
+    assert len(messages) == 20  # Expecting exactly 20 messages from concurrent writes
 
 def test_database_cleanup(test_db):
     test_db.create_account("temp_user", "password")
     test_db.close()
     assert test_db.get_conn() is not None  # Should be able to reopen
+
+
+
+
+

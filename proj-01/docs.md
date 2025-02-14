@@ -234,3 +234,234 @@ The `test_db.py` script provides a way to inspect the SQLite database contents f
   ```
 ### `utils/utils.py`
 - `recv_all(socket, n)` is a helper function to poll until all specified `n` bytes are read from the `socket`.
+
+## UI Documentation
+
+The below provides an overview of the implementation of the MessagingApp, a Tkinter-based messaging application. It describes the structure, UI components, and key functionalities of the application.
+
+The MessagingApp is a graphical user interface (GUI) application built with Tkinter that allows users to log in, send messages, and manage their accounts. The application maintains session state and updates the UI dynamically based on user interactions.
+
+## Configuration
+
+The application initializes with a session state that maintains authentication, messaging, and account-related statuses. Key session state parameters include:
+
+- `logged_in`: Boolean flag indicating login status.
+- `username`: Stores the current logged-in username.
+- `texts`: Dictionary storing messages per counterparty.
+- `max_texts`: Maximum number of texts per sender.
+- `current_page`: Tracks the current UI page (e.g., 'auth', 'main', 'settings').
+- `auth_status`, `account_status`, `message_status`: Flags indicating the success or failure of various actions.
+
+## UI Components
+
+### 1. Authentication UI
+
+The authentication UI is displayed when a user is not logged in. It includes:
+
+- Username and password entry fields.
+- Buttons for creating an account and logging in.
+- Status messages for authentication and account creation results.
+
+### 2. Main UI
+
+Upon successful login, the main messaging UI is displayed, containing:
+
+- A welcome message with the logged-in username.
+- Buttons for navigating to settings, logging out, and deleting the account.
+- Messaging functionalities: sending messages and viewing inbox messages.
+
+### 3. Settings UI
+
+The settings page allows users to adjust message-related preferences:
+
+- Modify the maximum number of texts per sender using a spinbox.
+- Save settings and return to the main UI.
+
+### 4. Send Message UI
+
+Users can send messages by:
+
+- Entering the recipient's username.
+- Typing the message content.
+- Clicking the 'Send' button.
+- Receiving feedback on the message status (sent successfully or recipient does not exist).
+
+### 5. Inbox UI
+
+Displays received and sent messages in a chat-style format:
+
+- Messages are shown in aligned chat bubbles (left for received, right for sent).
+- Each message has a delete button for removal.
+- A filter entry field allows users to search messages by counterparty.
+- A refresh button updates the inbox with new messages.
+
+## Functionalities
+
+### 1. User Authentication
+
+#### `handle_login()`
+- Hashes the password using SHA-256.
+- Calls `action_handler.login_account()` to authenticate the user.
+- Updates session state and UI upon successful login.
+
+#### `handle_create_account()`
+- Hashes the password using SHA-256.
+- Calls `action_handler.create_account()` to create a new user account.
+- Displays status messages based on the account creation result.
+
+### 2. Settings Management
+
+#### `save_settings()`
+- Updates the `max_texts` setting and displays a confirmation message.
+
+### 3. Messaging System
+
+#### `send_message()`
+- Retrieves recipient and message text input.
+- Calls `action_handler.send_text_message()` to send the message.
+- Refreshes the UI after sending.
+
+#### `update_inbox()`
+- Clears previous messages and reloads them in a chat-like format.
+- Displays messages with delete buttons aligned by sender status.
+
+#### `delete_message(counterparty, message_id)`
+- Removes a message from session storage.
+- Calls `action_handler.delete_text_message()` to delete it from the backend.
+- Refreshes the inbox UI.
+
+#### `refresh_inbox()`
+- Fetches new messages from the server using `action_handler.fetch_text_messages()`.
+- Updates the UI after retrieving new messages.
+
+### 4. Account Management
+
+#### `logout()`
+- Resets session state.
+- Redirects the user to the authentication UI.
+
+#### `delete_account()`
+- Calls `action_handler.delete_account()` to remove the user account.
+- Displays a confirmation message.
+- Logs out the user and resets session state.
+
+## Client-Server Interaction
+
+The application interacts with the backend through `action_handler`, which performs the following operations:
+
+- `login_account(username, password)`: Handles user authentication.
+- `create_account(username, password)`: Registers a new user.
+- `send_text_message(sender, recipient, text)`: Sends messages between users.
+- `fetch_text_messages(username, max_texts)`: Retrieves messages for the user.
+- `delete_text_message(message_id)`: Deletes a message from the system.
+- `delete_account(username)`: Removes a user account.
+
+## Conclusion
+
+This documentation provides an overview of the MessagingApp, describing its UI structure, functionalities, and interaction with backend services. The application ensures seamless user authentication, messaging, and account management within a simple and intuitive interface.
+
+# Account Database Test Suite Documentation
+
+## Overview
+
+This document outlines the test suite for the `AccountDatabase` class, ensuring the correctness of user account management, conversations, messaging, message deletion, and security against edge cases such as SQL injection and concurrent access.
+
+## Test Setup
+
+The test suite uses `pytest` and a temporary file-based database to allow multiprocessing support.
+
+## Dependencies
+
+- `pytest`
+- `multiprocessing`
+- `tempfile`
+- `os`
+- `db.AccountDatabase`
+
+## Database Initialization
+
+A temporary database file is created for testing:
+
+```python
+TEMP_DB_PATH = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name  
+```
+
+A `pytest` fixture initializes and cleans up the database:
+
+```python
+@pytest.fixture(scope="session")
+def test_db():
+    db = AccountDatabase(TEMP_DB_PATH)
+    yield db
+    db.close()
+    os.remove(TEMP_DB_PATH)
+```
+
+## Test Categories
+
+### 1. User Account Tests
+
+**Test Cases:**
+
+- `test_create_account`: Ensures a user account can be successfully created.
+- `test_duplicate_account`: Checks that duplicate accounts cannot be created.
+- `test_successful_login`: Validates login with correct credentials.
+- `test_incorrect_password`: Verifies login failure with incorrect passwords.
+- `test_nonexistent_user`: Ensures login attempts with non-existent users fail.
+- `test_empty_username`: Tests account creation with an empty username.
+- `test_empty_password`: Tests account creation with an empty password.
+- `test_special_characters_username`: Ensures accounts with special character usernames can be created.
+
+### 2. Conversation Tests
+
+**Test Cases:**
+
+- `test_create_conversation`: Validates conversation creation between two users.
+- `test_duplicate_conversation`: Ensures duplicate conversations are not allowed.
+- `test_conversation_with_nonexistent_user`: Prevents conversations with non-existent users.
+- `test_conversation_with_self`: Ensures self-conversations are disallowed.
+
+### 3. Message Tests
+
+**Test Cases:**
+
+- `test_send_message`: Checks if users can send messages after creating a conversation.
+- `test_send_message_creates_conversation`: Ensures a conversation is auto-created if it does not exist.
+- `test_send_message_to_nonexistent_user`: Prevents sending messages to a non-existent user.
+- `test_send_empty_message`: Ensures empty messages are not allowed.
+- `test_fetch_messages`: Validates retrieval of messages.
+- `test_fetch_no_messages`: Checks for proper behavior when no messages exist.
+
+### 4. Message Deletion Tests
+
+**Test Cases:**
+
+- `test_delete_message`: Ensures successful deletion of a message.
+- `test_delete_nonexistent_message`: Verifies handling of invalid message deletion attempts.
+- `test_delete_last_message_deletes_conversation`: Ensures that deleting the last message removes the conversation.
+
+### 5. Security & Edge Case Tests
+
+**Test Cases:**
+
+- `test_sql_injection`: Checks resilience against SQL injection attempts.
+- `test_concurrent_access`: Simulates concurrent messaging to validate database integrity.
+- `test_database_cleanup`: Ensures the database can be properly closed and reopened.
+
+## Running the Tests
+
+To execute the test suite, run the following command in the project directory:
+
+```sh
+pytest
+```
+
+To run specific tests:
+
+```sh
+pytest -k "test_name"
+```
+
+## Conclusion
+
+This test suite provides comprehensive coverage for account management, messaging, and database security. Ensuring all tests pass guarantees the reliability and robustness of the `AccountDatabase` implementation.
