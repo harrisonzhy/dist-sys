@@ -92,31 +92,31 @@ def test_db():
 
 **Test Cases:**
 
-- Delete an account successfully
-- Prevent deletion of nonexistent accounts
-- Ensure deleting an account removes conversations
+- `test_delete_account`: Delete an account successfully
+- `test_delete_nonexistent_account`: Prevent deletion of nonexistent accounts
+- `test_delete_account_removes_conversations`: Ensure deleting an account removes conversations
 
 ### 7. Advanced Message Tests
 
 **Test Cases:**
 
-- Prevent sending messages with invalid sender/receiver
-- Bulk message deletion test
+- `test_send_message_invalid_data`: Prevent sending messages with invalid sender/receiver
+- `test_delete_multiple_messages`: Bulk message deletion test
 
 ### 8. Message Retrieval Tests
 
 **Test Cases:**
 
-- Ensure ordering of fetched messages (latest first)
-- Ensure message retrieval respects limits
+- `test_fetch_messages_ordering`: Ensure ordering of fetched messages (latest first)
+- `test_fetch_messages_limit`: Ensure message retrieval respects limits
 
 ### 9. Edge Cases
 
 **Test Cases:**
 
-- Fetch messages from an empty database
-- Handle messages containing special characters
-- Database cleanup verification
+- `test_empty_database_fetch`: Fetch messages from an empty database
+- `test_special_character_messages`: Handle messages containing special characters
+- `test_database_cleanup`: Database cleanup verification
 
 ## Sample Test Implementation
 
