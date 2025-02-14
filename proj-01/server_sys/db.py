@@ -150,7 +150,7 @@ class AccountDatabase:
                     JOIN users u2 ON u2.id = c.user_id_2
                     WHERE (u1.username = ? AND u2.username = ?)
                     OR (u1.username = ? AND u2.username = ?)
-                """, (username_1, username_2, username_2, username_1s))
+                """, (username_1, username_2, username_2, username_1))
 
             cursor_fetch_execute()
             conversation = cursor.fetchone()

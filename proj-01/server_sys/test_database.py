@@ -157,12 +157,92 @@ def test_concurrent_access(test_db):
     messages = test_db.fetch_text_messages("multi_user1", 20)
     assert len(messages) == 20  # Expecting exactly 20 messages from concurrent writes
 
+### ---- 6. Account Deletion Tests ---- ###
+
+def test_delete_account(test_db):
+    test_db.create_account("delete_me", "password")
+    assert test_db.delete_account("delete_me") == True  # Account should be deleted
+    assert test_db.login_account("delete_me", "password") == False  # Login should fail
+
+def test_delete_nonexistent_account(test_db):
+    assert test_db.delete_account("ghost_user") == False  # Should fail
+
+def test_delete_account_removes_conversations(test_db):
+    test_db.create_account("rohan", "pass")
+    test_db.create_account("rachna", "pass")
+    test_db.create_conversation("rohan", "rachna")
+    assert test_db.delete_account("rohan") == True  # Should delete account and conversation
+    assert test_db.create_conversation("rohan", "rachna") == False  
+
+# ### ---- 7. Advanced Message Tests ---- ###
+
+def test_send_message_invalid_data(test_db):
+    test_db.create_account("charlie", "pass")
+    assert test_db.send_text_message("charlie", "", "Hello") == False  # Invalid receiver
+    assert test_db.send_text_message("", "charlie", "Hello") == False  # Invalid sender
+    assert test_db.send_text_message("charlie", "nonexistent", "Hello") == False  # Receiver does not exist
+
+def test_delete_multiple_messages(test_db):
+    test_db.create_account("dan", "pass")
+    test_db.create_account("eve", "pass")
+    test_db.create_conversation("dan", "eve")
+    
+    test_db.send_text_message("dan", "eve", "Message 1")
+    test_db.send_text_message("eve", "dan", "Message 2")
+    test_db.send_text_message("dan", "eve", "Message 3")
+    
+    messages = test_db.fetch_text_messages("dan", 10)
+    
+    message_ids = [int(msg.split('|')[0]) for msg in messages]
+    for msg_id in message_ids:
+        test_db.delete_text_message(msg_id)
+    
+    assert test_db.fetch_text_messages("dan", 10) == []  # No messages should be left
+
+# ### ---- 8. Ordering & Limits Tests ---- ###
+
+def test_fetch_messages_ordering(test_db):
+    test_db.create_account("frank", "pass")
+    test_db.create_account("grace", "pass")
+    test_db.create_conversation("frank", "grace")
+    
+    test_db.send_text_message("frank", "grace", "First Message")
+    test_db.send_text_message("frank", "grace", "Second Message")
+    test_db.send_text_message("grace", "frank", "Third Message")
+    
+    messages = test_db.fetch_text_messages("frank", 3)
+    
+    assert "Third Message" in messages[0]  # Most recent first
+    assert "Second Message" in messages[1]
+    assert "First Message" in messages[2]
+
+def test_fetch_messages_limit(test_db):
+    test_db.create_account("henry", "pass")
+    test_db.create_account("isla", "pass")
+    test_db.create_conversation("henry", "isla")
+    
+    for i in range(10):
+        test_db.send_text_message("henry", "isla", f"Message {i}")
+    
+    messages = test_db.fetch_text_messages("henry", 5)
+    assert len(messages) == 5  # Should return exactly 5 messages
+
+# ### ---- 9. Edge Cases ---- ###
+
+def test_empty_database_fetch(test_db):
+    assert test_db.fetch_text_messages("empty_user", 5) == []  # No messages should exist
+
+def test_special_character_messages(test_db):
+    test_db.create_account("joker", "pass")
+    test_db.create_account("batman", "pass")
+    test_db.create_conversation("joker", "batman")
+    
+    special_message = "Hello! @#$%^&*()_+"  # Message with special characters
+    assert test_db.send_text_message("joker", "batman", special_message) == True
+    messages = test_db.fetch_text_messages("joker", 1)
+    assert special_message in messages[0]  # Message should be retrievable correctly
+
 def test_database_cleanup(test_db):
     test_db.create_account("temp_user", "password")
     test_db.close()
     assert test_db.get_conn() is not None  # Should be able to reopen
-
-
-
-
-
