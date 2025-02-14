@@ -4,7 +4,7 @@ import queue
 from concurrent.futures import ThreadPoolExecutor
 from collections.abc import Iterable as iterable
 
-from server_sys import db
+from database import db
 from utils import message as MSG
 from utils import config
 from utils import utils

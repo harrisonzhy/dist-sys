@@ -101,7 +101,3 @@ The application interacts with the backend through `action_handler`, which perfo
 - `fetch_text_messages(username, max_texts)`: Retrieves messages for the user.
 - `delete_text_message(message_id)`: Deletes a message from the system.
 - `delete_account(username)`: Removes a user account.
-
-## Conclusion
-
-This documentation provides an overview of the MessagingApp, describing its UI structure, functionalities, and interaction with backend services. The application ensures seamless user authentication, messaging, and account management within a simple and intuitive interface.

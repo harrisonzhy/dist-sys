@@ -37,7 +37,6 @@ class Client:
         print("Client port:", self.port)
 
         self.connect()
-        self.run_app()
 
     def send_server_message(self, message: MSG.Message):
         """Send a message to the server."""
@@ -176,7 +175,7 @@ class Client:
 
                 if self.session_state['account_status'] != None:
                     if self.session_state["account_status"] == False:
-                        error_label = tk.Label(self, text="Error: Username already exists. Please log in or choose another username.", fg="red")
+                        error_label = tk.Label(self, text="Error: Username already exists.", fg="red")
                         error_label.pack(pady=5)
                     elif self.session_state["account_status"] == True:
                         success_label = tk.Label(self, text="Account creation successful! Please log in.", fg="green")
@@ -266,8 +265,8 @@ class Client:
             def delete_account(self):
                 """Delete user account."""
                 action_handler.delete_account(self.session_state["username"])
+                self.logout()
                 messagebox.showinfo("Account Deleted", "Your account has been deleted.")
-                self.after(2000, self.logout)
 
             def show_send_message_ui(self):
                 """Show send message interface."""
@@ -461,6 +460,4 @@ def test_end_to_end(client):
 
 if __name__ == "__main__":
     client = Client()
-    # test_end_to_end(client)
-    # while True:
-    #     pass
+    client.run_app()
