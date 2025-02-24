@@ -200,13 +200,14 @@ class AccountDatabase:
                     message_data.append(str(row[i]))
                 messages.append('|'.join(message_data))
 
+            # print(messages)
             if messages:
                 print(f"[Server] The k={k} most recent messages involving '{username_1}':")
                 for message in messages:
                     print("[+]", message)
             else:
                 print(f"[Server] No messages found involving'{username_1}'.")
-                messages.append("")
+                messages.append('|||')
             return messages
 
     def delete_text_message(self, message_id):

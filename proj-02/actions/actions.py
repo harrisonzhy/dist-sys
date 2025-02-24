@@ -68,9 +68,15 @@ class ClientCallbackHandler(BaseActionHandler):
         else:
             self.session_state["message_status"] = False
         return True
+    
+    def delete_text_message(self, contents: str):
+        print(f"[Client Callback] Deleted text message: {contents}")
+        return True
 
     def fetch_text_messages(self, m_id: str, sender: str, receiver: str, text: str):
         print(f"[Client Callback] Retrieved recent text messages: {'|'.join([m_id, sender, receiver, text])}")
+        if min(len(sender), len(receiver), len(text)) == 0:
+            return True
         is_sender = (sender == self.session_state['username'])
         counterparty = receiver if is_sender else sender
         if counterparty in self.session_state['texts']:

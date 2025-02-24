@@ -2,6 +2,7 @@ import socket
 import threading
 import hashlib as hasher
 import queue
+import grpc
 from concurrent.futures import ThreadPoolExecutor
 
 from utils import message as MSG
@@ -11,6 +12,9 @@ from actions import actions
 
 import tkinter as tk
 from tkinter import messagebox, simpledialog, scrolledtext
+
+from utils import service_pb2
+from utils import service_pb2_grpc
 
 class Client:
     def __init__(self):
@@ -28,18 +32,60 @@ class Client:
         self.port = CFG.get_client_config()['port']
         self.connected = False
 
+        self.client_socket = None
         self.action_handler = actions.ClientActionHandler(self, self.action_dict_name)
         self.callback_handler = actions.ClientCallbackHandler(self, self.action_dict_name)
         self.server_message_queue = queue.Queue()
         self.executor = ThreadPoolExecutor(max_workers=1)
+
+        self.grpc = True
+        self.channel_grpc = None
+        self.stub_grpc = None
+        self.client_id = None
 
         print("Client host:", self.host)
         print("Client port:", self.port)
 
         self.connect()
 
+    def send_recv_server_message_grpc(self, message: MSG.Message):
+        if self.connected:
+            try:
+                if message.valid():
+                    # Send server message (pure content string)
+                    response = self.stub_grpc.SendMessage(
+                        service_pb2.MessageRequest(message=message.message_str())
+                    )
+                    
+                    # Process each response string in the returned list of responses
+                    print(response)
+                    for response_str in response.responses:
+                        response_message = MSG.Message.from_bytes(response_str, self)
+                        print(response_message)
+
+                        if response_message.valid():
+                            message_type, message_content = response_message.unpack()
+                            message_args = MSG.MessageArgs.to_arglist(message_content)
+                            # Push each response to the job queue
+                            self.server_message_queue.put((message_type, message_args))
+                        else:
+                            print("[Client] Received an invalid response message.")
+                    pass
+                else:
+                    print("[Client] Blocked invalid message from sending.")
+                    pass
+            except Exception as e:
+                print("[Client] Failed to send message. Connection lost:", e)
+                self.disconnect()
+        else:
+            print("[Client] Not connected to server.")
+
     def send_server_message(self, message: MSG.Message):
         """Send a message to the server."""
+        if self.grpc:
+            self.send_recv_server_message_grpc(message)
+            return
+
         if self.connected:
             try:
                 if message.valid():
@@ -87,8 +133,32 @@ class Client:
             print("[Client] Lost connection to server due to:", e)
         self.disconnect()
 
+    def connect_grpc(self):
+        server_address = f"{self.host}:{self.port}"
+        self.channel_grpc = grpc.insecure_channel(server_address)
+        try:
+            # Wait for the channel to be ready
+            grpc.channel_ready_future(self.channel_grpc).result(timeout=5)
+            self.stub_grpc = service_pb2_grpc.MessageServiceStub(self.channel_grpc)
+            
+            # Call the Register RPC to obtain a unique client ID
+            register_response = self.stub_grpc.Register(service_pb2.RegisterRequest())
+            self.client_id = register_response.client_id
+            
+            self.connected = True
+            print(f"[Client] Connected to the gRPC server. Assigned client ID: {self.client_id}")
+        except Exception as e:
+            self.channel_grpc = None
+            self.stub_grpc = None
+            self.connected = False
+            print("[Client] Failed to connect to gRPC server:", e)
+
     def connect(self):
         """Establish a connection with the server."""
+        if self.grpc:
+            self.connect_grpc()
+            return
+
         if self.connected:
             print("[Client] Already connected to the server.")
             return
@@ -99,6 +169,7 @@ class Client:
             print("[Client] Connected to the server.")
             self.connected = True
             threading.Thread(target=self.recv_server_message, daemon=True).start()
+            # Queue is processed by `run_app()`
             # threading.Thread(target=self.process_queued_messages, daemon=True).start()
         except Exception as e:
             print("[Client] Failed to connect to the server due to:", e)
@@ -131,7 +202,7 @@ class Client:
 
                 callback_handler.session_state = self.session_state
 
-                self.title("Messaging App")
+                self.title("Messenger")
                 self.geometry("500x500")
 
                 self.update_ui()

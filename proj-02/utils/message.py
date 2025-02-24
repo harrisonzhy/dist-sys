@@ -115,6 +115,9 @@ class Message:
         # print("[Message] Content:", instance.message_content)
 
         return instance
+    
+    def message_str(self) -> str:
+        return self.message
 
     def encode(self) -> bytes:
         """Encodes the message into bytes (UTF-8)."""
