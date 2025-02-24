@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package message_service;
+
+service MessageService {
+  rpc SendMessage(MessageRequest) returns (MessageResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+}
+
+message RegisterRequest {}
+message RegisterResponse {
+  string client_id = 1;
+}
+
+message MessageRequest {
+  string message = 1;
+}
+
+message MessageResponse {
+  repeated string responses = 1;
+}
