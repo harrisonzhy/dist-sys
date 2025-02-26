@@ -1,4 +1,4 @@
-# proj-01
+# proj-03
 
 ## Environment Setup
 
@@ -15,30 +15,32 @@ We built our implementation to be as lean as possible in terms of dependencies. 
 ```
 pip3 install -r requirements.txt
 ```
-You should also install `TKinter` using your system's package manager (not `pip`).
 
 ## Demo
 
-By default, the demo is set up to run locally. You may configure your desired settings in `config.ini`.
+By default, the demo is set up to run locally. You may configure your desired settings in `config.ini` and via command line argument.
 
-To run the app with one server and one client, start the server in one terminal window and then start the client in another:
+Run separate instances of `client.py`, specifying the command line arguments like so:
+```sh
+python3 client.py -h
 ```
-python3 server.py
-python3 client.py
 ```
-The client should send a server message, which is received by the server. On the client side, you should expect in the standard output:
+usage: client.py [-h] [--host HOST] [--port PORT] [--peers PEERS] [--proba PROBA]
+
+Run the peer client.
+
+options:
+  -h, --help     show this help message and exit
+  --host HOST    Host for this client to connect to
+  --port PORT    Port for this peer to listen on
+  --peers PEERS  Comma-separated list of peers in host:port format (e.g.
+                 127.0.0.1:5555,127.0.0.1:5556)
+  --proba PROBA  Probability (0<=p<=1) to send a message each iteration
 ```
-Client host: 127.0.0.1
-Client port: 5555
-Connected to the server.
-...
+For instance, you may run the three-peer local network demo (default host is `localhost`, probability is `0.5`):
 ```
-On the server side, you should expect in the standard output:
+python3 client.py --port 5555 --peers 127.0.0.1:5556,127.0.0.1:5557
+python3 client.py --port 5556 --peers 127.0.0.1:5555,127.0.0.1:5557
+python3 client.py --port 5557 --peers 127.0.0.1:5555,127.0.0.1:5556
 ```
-Server host: 127.0.0.1
-Server port: 5555
-Server started on 127.0.0.1:5555
-New connection from ('127.0.0.1', 59478)
-...
-```
-The clientside UI should open in another window.
+You should see some messages exchanged in the standard output and callbacks invoked on all sides. 
