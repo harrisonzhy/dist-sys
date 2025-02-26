@@ -172,8 +172,8 @@ class Client:
 
     def broadcast_message(self, message: MSG.Message):
         """Send a message to all connected peers."""
-        for sock in self.peer_sockets:
-            self.send_message(message, sock)
+        for socket in self.peer_sockets:
+            self.send_peer_message(message, socket)
 
     def process_queued_messages(self):
         """Processes messages from the server message queue (serially)."""
